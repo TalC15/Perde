@@ -1,0 +1,23 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Perde 2.2.2</title><link rel="stylesheet" href="popup.css"></head><body>
+<header><span class="mark">P</span><div><h1>Perde <small>2.2.2</small></h1><p>Cihazında görüntü ve ses koruması</p></div></header>
+<main>
+<section class="state" aria-live="polite"><strong id="status">Durum kontrol ediliyor…</strong><p id="detail"></p><p id="counts"></p></section>
+<label class="toggle"><span><strong>İnsan bölgelerini ört</strong><small>Algılama cihazında yapılır.</small></span><input id="enabled" type="checkbox"></label>
+<p class="help">Algılanan insan bölgeleri otomatik örtülür. Algılama hatasız değildir; görüntüler cihazında analiz edilir.</p>
+<label for="profile">Koruma seviyesi</label><select id="profile"><option value="loose">Gevşek · daha dar maskeler</option><option value="balanced">Dengeli</option><option value="high">Yüksek · daha hassas, daha geniş</option></select>
+<label class="toggle compact"><span>Analiz hatasında videoyu duraklat</span><input id="pauseOnError" type="checkbox"></label>
+<label class="toggle compact"><span>YouTube reklamlarında sesi kapat</span><input id="muteAds" type="checkbox"></label>
+<label class="toggle compact"><span>Bilinen kumar reklamlarını gizle</span><input id="blockGambling" type="checkbox"></label>
+<p class="help">Kumar filtresi tanınan reklam kutuları ve sınırlı metin/adres kurallarıyla çalışır; tüm reklamları tespit edemez.</p>
+<details><summary>Diğer sitelerde koruma</summary><p class="help">Yalnızca seçtiğin sitelere erişim verilir. Okunamayan görseller bulanık kalır. Bazı videolar, animasyonlar ve özel oynatıcılar desteklenmez.</p><button id="allow-site">Bu sitede korumayı aç</button><p id="site-status" role="status"></p><ul id="sites"></ul></details>
+<details><summary>Yerel vokal servisi</summary>
+<label class="toggle compact"><span>YouTube’da vokal kutusunu göster</span><input id="vocalEnabled" type="checkbox"></label>
+<label for="maxMinutes">Video süresi sınırı</label><select id="maxMinutes"><option value="3">3 dakika</option><option value="5">5 dakika</option><option value="10">10 dakika</option><option value="15">15 dakika</option><option value="25">25 dakika</option><option value="40">40 dakika</option></select>
+<p class="help">Önce paket içindeki vocal-service/BASLAT.ps1 dosyasını çalıştır. Verdiği anahtarı buraya yapıştır. Ses cihazında işlenir. Hazırlama süresi donanıma bağlıdır; şarkı sözleri vokalde kalabilir.</p>
+<label for="token">Bu oturumun servis anahtarı</label><input class="text" id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Servisin gösterdiği anahtar"><button id="connect">Yerel servise bağlan</button><button id="disconnect" class="secondary">Bağlantıyı kapat ve sesi temizle</button><p id="vocal-status" role="status">Anahtar tarayıcı kapanınca silinir.</p>
+<p class="help">Videodaki “Vokali bu bilgisayarda sakla” kutusu seçilirse ayrılmış ses sonraki izlemeler için diskte tutulur. Kutu kapatılınca eski kayıt silinmez. Kayıtlar sen silene kadar kalır.</p><button id="clear-cache" class="secondary">Kaydedilmiş tüm vokalleri sil</button>
+</details>
+<div class="row"><button id="retry">Analizi yeniden dene</button><button id="check">Model testi</button></div><p id="save" role="status"></p>
+<div class="links"><button id="test">Kendi dosyanla test et</button><button id="diagnostic">Hata bilgisini kopyala</button></div>
+<a href="guide.html" target="_blank">Kurulum, mahremiyet ve sınırlar ↗</a>
+</main><footer>Hesap yok · Telemetri yok · Görüntü yükleme yok</footer><script src="settings.js"></script><script src="popup.js"></script></body></html>

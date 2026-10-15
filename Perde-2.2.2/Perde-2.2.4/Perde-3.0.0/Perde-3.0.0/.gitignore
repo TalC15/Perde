@@ -1,0 +1,12 @@
+.vocal-cache/
+.saved-vocals/
+.runtime/
+.models/
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+tests/.browser-profile/
+tests/.integration-*/
+.integration-*/
+tests/integration-error.txt

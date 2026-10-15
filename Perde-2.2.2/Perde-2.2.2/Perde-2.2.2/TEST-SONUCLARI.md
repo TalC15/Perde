@@ -1,0 +1,83 @@
+# Perde 2.2.2 doğrulama notları — 13 Ekim 2026
+
+## Son düzenleme: görsel etiketleme kaldırıldı
+
+Elle kişi etiketleme arayüzü ve kategori filtreleri kullanıcının talebiyle kaldırıldı. Otomatik insan/yüz algılama ve bütün insan bölgelerini örtme davranışı devam eder. Ses aktarımı ve isteğe bağlı vokal kütüphanesi korunur. Bu düzenlemenin ardından eklentide kalan 16 davranış/aktarım testi ve JavaScript sözdizimi kontrolleri geçti. Gerçek tarayıcı testi bu düzenlemede çalıştırılmadı.
+
+## Önceki ses iyileştirmelerinde çalıştırılan kontroller
+
+- Eklenti davranışı ve aktarım: **17/17 geçti** (`node --test tests/*.test.cjs`). Parça aktarımının kaldığı yerden devamı, üç başarısız deneme, eksik/aşırı büyük veri reddi, iptalde bağlantının durdurulması, aktarım sırasında yanıt verebilen durum sorgusu, hazır dosyadan yeniden deneme, kayıt tercihinin servise iletilmesi, sonradan kaydetme ve elle verilen kategorilere göre maske filtresi. Tarayıcı/DOM bu testlerde taklittir; görsel yerleşim testi değildir.
+- Servis ve kalıcı kayıt: **22/22 geçti** (`python tests/test_service_inprocess.py`). Üretim HTTP işleyicileri bellek akışlarıyla çalıştırıldı; ağ soketi açılmadı. Yetkilendirme, süre sınırı, byte aralıkları, iptal/temizlik, kayıtların servis yeniden açılışında kullanılması, kayıt kapalıyken kalıcı dosya oluşturmama, sonradan kayıt, son durum sorgusundan önce normal kapanışta tamamlanmış kaydı koruma, bozuk kopya reddi, disk hatasında oynatılabilir dosyayı koruma ve kayıtları silme doğrulandı.
+- Ses akışı: **3/3 geçti** (`vocal-service/.venv/Scripts/python.exe tests/test_audio_stream.py`). 40 dakika için sınırlı blok boyutu ve örnek doğruluğu; model yerine kimlik dönüşümü.
+- Ses dili seçimi ve kilitli klasör temizleme: **12/12 geçti**. `AudioSelectionTests` ve `CleanupTests.test_locked_directory_is_retried_and_configuration_is_preserved` çalıştırıldı.
+
+**Toplam 54 test geçti.** Gerçek yerel HTTP testleri çalışma ortamının bağlantı kısıtıyla engellendi (Windows 10013). Kısıt dışında çalıştırma isteği reddedildi; tekrar denenmedi. Gerçek tarayıcıdan servise aktarım, yeni kontrollerin görsel yerleşimi ve 30–40 dakikalık gerçek YouTube/Demucs işlemi bu güncellemede doğrulanmadı. Önceki aşağıdaki ölçümler yeni değişikliklere ait değildir.
+
+Aktarım hatasının olası kod kaynakları: tek dosyalık istekte 30 saniye sınırı, aktarım boyunca açık tutulan mesaj yanıtı ve HTTP işleyicisinde dosya gönderimi sırasında tutulan iş kilidi. Yeni kod 1 MiB aralıklar, parça bazlı yeniden deneme, kısa durum yanıtları ve kilit dışında dosya gönderimi kullanır. Kullanıcının özgül hatasını gösteren çalışma kaydı mevcut değildi; bütün “Failed to fetch” nedenlerinin giderildiği iddia edilmez.
+
+Arka plan belgesinin kapanması durumunda hazır sunucu dosyası yeniden yüklenir. Chrome'un ses oynatma amacıyla açılan belgeler için yaşam döngüsü sınırı ayrıca vardır: [resmî offscreen belgesi](https://developer.chrome.com/docs/extensions/reference/api/offscreen#reasons).
+
+## Önceki doğrulama notları — 8 Ekim 2026
+
+Bu sürümde 40 dakikalık vokal desteği, sınırlı bellekle blok işleme, hazırlama ilerlemesi ve açık oturum bildirimi eklendi. Yalnızca kadınları otomatik hedefleme uygulanmadı; görsel motor bütün insanları hedeflemeye devam eder.
+
+## Tamamlanan kontroller
+
+| Kontrol | Sonuç ve kapsam |
+| --- | --- |
+| Eklenti davranış testleri | **9/9 geçti.** Ayar sınırları, video kimliği, maske takibi, anahtar erişimi, iş sahipliği, video değişiminde iptal, sesin durması ve oturum bildirimi. |
+| Yerel HTTP servis testleri | **13/13 geçti.** Gerçek yerel HTTP; anahtar, Host/Origin, 40 dakika sınırı, 120 dakika hazırlama sınırı, süre/kimlik doğrulama, iptal, etkin oturumun korunması, ilerlemeyen işin seslerinin silinmesi, durum dosyasının iş meta verisini değiştirememesi. İşçi başlatma bu testlerde taklittir. |
+| Ses blok testleri | **3/3 geçti.** 15 farklı sınır uzunluğu, tek örnekli/kısa dosyalar, örtüşmeler, son bloklar, geçersiz model çıktısı ve 40 dakikalık akışta 30 saniyeden büyük bloğun modele ulaşmaması. Kimlik dönüşümüyle örnek hizası doğrulanır. |
+| Gerçek Manifest V3 görüntü testi | İnsan + yüz modelleri WebGL ile çalıştı; boş görüntüde çıkarım, ayar kaydı, kaynak değişiminde örtünün korunması ve kapatılması geçti. Ayrı Brave profili kullanıldı. |
+| Tarayıcı kontrol testi | 40 dakika uzunluğunda gerçek HTML medya öğesi; ilerleme yüzdesi, oturum bildirimi, 39. dakikaya sarma, hız, reklamda durma ve önceki sessiz duruma dönme geçti. Servis cevapları taklittir. |
+| Eklenti–HTTP–ses bütünleşmesi | Gerçek eklenti betikleri, yetkili yerel HTTP ve gerçek offscreen ses öğesiyle oynatma, sarma, hız, reklamda durma/devam, iptal ve sunucuya silme isteği geçti. Servis yapay ses verir. Test kopyasına localhost izni önceden eklenir; izin isteme arayüzü bu testin kapsamında değildir. |
+| Sözdizimi | Güncellenen JavaScript ve Python dosyaları geçti. |
+
+## Uzun gerçek model testi
+
+**Geçti.** 25 dakikalık, 44.100 Hz stereo yapay ses gerçek Demucs modeliyle bu bilgisayarın işlemcisinde işlendi. Ayırma ve MP3 kodlama/yeniden çözme kontrolleri toplam **1.615,8 saniye (26 dakika 55,8 saniye)** sürdü. Ayırma 1.594,0 saniyede tamamlandı; model önceden indirilmişti, bu ölçüm YouTube indirme süresini içermez.
+
+- İşlemin en yüksek çalışma belleği: **1.934,3 MB (yaklaşık 1,93 GB)**.
+- Çıkış: **kanal başına 66.150.000 örnek**, 44.100 Hz, stereo; tüm değerler sonlu.
+- 192 kbit/sn MP3 boyutu: **36.001.375 bayt**. MP3 yeniden çözüldüğünde örnek sayısı aynı kaldı; zaman çizelgesinde uzunluk kaybı olmadı.
+- Kişisel dosya kullanılmadı; geçici giriş ve çıkış sesleri test sonunda silindi.
+
+Ölçüm kaydı: [tests/long-audio-result.json](tests/long-audio-result.json). Bu test uzun işlem kararlılığını ve ses uzunluğunu doğrular; sesin insan kulağıyla algılanan kalitesini ölçmez. Gerçek müziklerde ayırma kalitesi ve işlem süresi farklı olabilir.
+
+## Önceki sürümde doğrulananlar
+
+2.1 sürümünde 19 saniyelik herkese açık YouTube örneği (`jNQXAC9IVRw`) indirme → Demucs → MP3 akışında 25,1 saniyede işlendi. Çerez kullanılmadı ve test sesleri silindi. Bu geliştirme örneği kullanıcı geçmişi değildir. Bu 2.2 turunda dışarıdan yeni YouTube videosu indirilmedi.
+
+## Sınırlar
+
+Günlük kullanıcı profilindeki gerçek YouTube reklamları, çoklu dublaj, farklı sitelerde kapsamlı uyumluluk ve ses kalitesinin dinleyici değerlendirmesi yapılmadı. İşaretlenmiş reklam senaryosu ile canlı reklam trafiği aynı test değildir. Kişi kaçırma oranı veri kümesiyle ölçülmedi. Bağımsız güvenlik denetimi yapılmadı. Bu rapor hatasızlık veya güvenlik sertifikası değildir.
+
+Orijinal görüntü kütüphaneleri değiştirilmedi. TensorFlow'un regenerator global değişkeni için önceki sürümde eklenen tanım, güvenlik politikasını gevşetmeden yükleme sorununu çözüyor.
+
+## Başlatıcı düzeltmesi
+
+ZIP kopyasında bulunmayan `.venv` yolunun doğrudan çağrılması düzeltildi. `BASLAT.cmd` önce çalışma ortamını kontrol eder; eksik bileşenleri kurar. Bu bilgisayardaki açılmış ZIP kopyası mevcut Python ortamına ve model önbelleğine bağlandı. Makineye özel yollar `.runtime/environment.json` dosyasındadır ve dağıtım paketine girmez. Her iki kopyada bağımlılık kontrolü, gerçek CMD üzerinden kimlik istemine ulaşma ve geçersiz kimlik reddi doğrulandı. Ortamı olmayan kopyada açıklayıcı kurulum mesajı kontrol edildi. Bu kontrolde yeniden ses ayırma veya canlı servis bağlantısı çalıştırılmadı.
+
+## Pencere kapanışında kilitli ses düzeltmesi — 8 Ekim 2026
+
+Kapanan servis penceresinin ardında çalışan Windows ses işçisinin `input.wav` dosyasını kilitlemesi doğrulandı. Yalnızca bu işe ait işlem ağacı durduruldu ve artık kullanılmayan geçici ses klasörü temizlendi. Servis, işçi oluşturmadan önce Windows Job Object kapsamına alınır; servis işlemi zorla sonlanınca çocuk ve torun işlemler de işletim sistemi tarafından kapanır. Kilitli eski klasörler açılışı engellemez; temizlik 20 saniyelik aralıklarla yeniden denenir, etkin işler ve ortam ayarı korunur.
+
+İki yeni gerileme kontrolü geçti: gerçek kilitli dosya üzerinde ebeveyni zorla kapatıp çocuk/torun işlemlerin kapanması ve dosyanın temizlenmesi; geçici kilitte yeniden deneme sırasında etkin klasör/ayarın korunması. Mevcut 12 servis testi yeniden geçti. Kullanılan kopyada gerçek servis art arda iki kez açılıp kapatıldı; WinError 32 oluşmadı. Bu düzeltmede yeniden uzun ses ayırma testi çalıştırılmadı.
+
+## Türkçe ses tercihi — 2.2.1
+
+Türkçe ses erişilebiliyorsa dublaj/orijinal parçanın önüne Türkçe seçimi uygulanır. Yalnız altyazı Türkçe diye yabancı ses Türkçe sayılmaz. Türkçe yoksa mevcut sesle devam edildiği panelde açıkça belirtilir. İndirme tek çıkarımda seçilen formatla yapılır; ikinci bir URL çıkarımı varsayılan dile geri döndüremez. Dil bilgisi indirme, ayırma, kodlama ve hazır durumunda korunur.
+
+14/14 yeni seçim testi geçti: 11 dil/format sınırı ve gerçek kurulu yt-dlp + gerçek FFmpeg ile 3 yerel indirme bütünleşmesi. Bu bütünleşmede YouTube çıkarıcısı ve Demucs taklittir. Türkçe indirme başarısız olduğunda yabancı dile sessiz geçiş yapılmadığı doğrulandı. Güncellenen 9/9 eklenti ve 12/12 servis testi geçti. Tarayıcı kontrolünde Türkçe notu, Türkçe bulunamadı notu, iptal sonrası sıfırlama ve mevcut oynatma/reklam kontrolleri geçti.
+
+Kullanıcının verdiği gerçek YouTube videosunda 1.251 saniyelik içerik için Türkçe ses parçası seçildi. Gerçek Türkçe ses indirimi başarılı oldu (21.779.349 bayt); FFmpeg ile kısa bölüm 4,9931 saniye olarak çözüldü. Çerez veya kişisel dosya kullanılmadı ve geçici sesler silindi. Bu son kontrol Türkçe etiketli gerçek sesin seçimini/indirimini/okunmasını doğrular; bütün videoda yeniden Demucs çalıştırma veya dinleyici kalite değerlendirmesi değildir.
+
+## 40 dakika desteği — 2.2.2
+
+Panelde ve sunucuda 40 dakika seçeneği eklendi; yeni kurulum varsayılanı 40, önceki açık süre seçimleri korunur. İndirme boyut sınırı 160 MB, FFmpeg dönüşüm/kodlama süre sınırı 300 saniye, toplam hazırlama sınırı 120 dakikadır. 10 dakikalık ilerlememe ve 15 dakikalık kullanılmayan oturum temizliği korunur.
+
+Bu değişiklikte 9/9 eklenti, 13/13 yerel servis ve 3/3 ses akış testi geçti. Tam 2.400 saniye kabul edilir; 2.400,01 saniye reddedilir. 91 dakikalık ilerleyen işin korunması, 121 dakikalık işin durdurulması ve seslerinin silinmesi kontrol edildi. Tarayıcıda gerçek 40 dakikalık medya öğesiyle başlangıç, Türkçe bilgisi, 39. dakikaya sarma, hız, reklam ve iptal kontrolleri geçti.
+
+40 dakikalık 44.100 Hz stereo yapay ses, kimlik dönüşümüyle 86 blokta işlendi; en büyük blok 30 saniyeydi. Kanal başına 105.840.000 örnek hem WAV çıkışında hem gerçek MP3 kodlama/yeniden çözme sonrasında korundu. MP3 boyutu 57601296 bayt. Bu medya kontrolü 43.41 saniye sürdü; **Demucs kullanmadığı için bu süre vokal ayırma hızı değildir**. Ölçüm: [tests/long-media-result.json](tests/long-media-result.json). Geçici sesler silindi.
+
+40 dakikanın tamamında gerçek Demucs tekrar çalıştırılmadı. Bellek ve süre değerlendirmesi, önceki gerçek 25 dakika ölçümüne ve değişmeyen 30 saniyelik blok boyutuna dayanır: 1,93 GB işçi belleği ve 26 dakika 55,8 saniye üzerinden yaklaşık 43 dakikalık tahmin. 16 GB RAM ve Ryzen 5 5500 için uygunluk bu verilere dayalı değerlendirmedir; bütün tarayıcı/RAM kullanımı ölçümü veya 40 dakikalık model hız garantisi değildir.

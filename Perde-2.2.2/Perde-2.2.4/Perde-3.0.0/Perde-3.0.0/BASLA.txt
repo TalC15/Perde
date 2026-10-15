@@ -1,0 +1,44 @@
+PERDE 3.0.0 — BAŞLANGIÇ
+
+Önemli: Yalnızca kadınları tespit etme yoktur. Görsel maskeleme bütün insanları hedefler.
+
+1. chrome://extensions > Geliştirici modu > Paketlenmemiş öğe yükle.
+2. Bu paketin eklenti klasörünü seç. Eski kurulum zaten aynı klasördeyse Yenile'ye bas.
+3. YouTube sekmelerini yenile. Eklenti panelinden Model testi yap.
+4. Yeni vokal hazırlamak için vocal-service/BASLAT.cmd dosyasını aç; eklentinin kimliğini gir.
+5. Gösterilen anahtarı eklenti paneli > Vokaller > Yeni vokal hazırla bölümüne yapıştır.
+Servisi kapatıp yeniden açtıysan yeni anahtarı bağla. 3.0 güncellemesi ses servisini yeniden kurmayı gerektirmez.
+6. Kayıt yoksa YouTube'daki Perde · Vokal kutusundan Vokal oluştur'u seç.
+Vokali tarayıcıda sakla kutusu varsayılan olarak açıktır; seçimin sonraki videolar için hatırlanır.
+Tamamlanan kayıtlar eklenti panelindeki Kaydedilmiş vokaller bölümünde görünür.
+Aynı videoyu açınca veya sayfayı yenileyince kayıtlı vokal otomatik kullanılır; yerel servis gerekmez.
+Önceki sürümün diskteki kaydı, güncel servis bağlıyken ilgili video açılınca tarayıcıya aktarılır.
+Panelden kayıtlı videoyu açabilir, tek vokali veya bütün tarayıcı kayıtlarını silebilirsin.
+Servis bağlantısını kapatmak yüklenmiş vokali durdurmaz; tamamlanmamış hazırlama veya aktarımı iptal eder.
+Güncellemek için mevcut eklentinin Yenile düğmesini kullan. Eklentiyi kaldırmak veya verilerini temizlemek kayıtları siler.
+Türkçe ses erişilebiliyorsa otomatik seçilir. Türkçe yoksa mevcut ses kullanılır ve kutuda bilgi gösterilir.
+Önceki dilde kaydedilmiş vokal kendiliğinden yeniden hazırlanmaz. İptal etmek kayıtlı sesi silmez.
+
+Bu bilgisayarda vokal bağımlılıkları ayrı .venv ortamına kuruldu. Başka bilgisayarda
+ilk kurulum için Python 3.12 ve Node.js 22+ gerekir; BASLAT.cmd eksik ses bileşenlerini kurar.
+Video süresi 3/5/10/15/25/40 dakika olarak seçilir. Mevcut kurulumda 40 dakikayı panelden seç. Hazırlama süresi donanıma bağlıdır.
+Diğer sitelerde koruma, eklenti panelinden tek tek izin verilerek açılır.
+Yeni panelde Koruma / Vokaller / MP3’ler / Ayarlar sekmeleri bulunur.
+YouTube kontrol çubuğunu örten katman kuralı kaldırıldı; vokal kutusu kontrollerden uzak konumlanır.
+İşlemci kullanımı otomatik dengelenir; kısa testlerde aynı kalite ayarlarıyla yaklaşık %10 hız kazancı görüldü.
+
+Tüm kullanım, mahremiyet ve kapsam sınırları: README.md veya ONCE-OKU.html.
+Test kapsamı ve sonuçları: TEST-SONUCLARI.md.
+
+3.0 YENİLİKLERİ
+Vokal kutusunu başlığındaki tutamaçtan sürükle; konumu hatırlanır.
+Konumu sıfırla düğmesi otomatik yerleşime döndürür.
+Servis bağlanınca anahtar alanı gizlenir, düğme Servise Bağlı olur.
+Bağlantı kurulduğunda açık vokal paneli sayfayı yenilemeden toparlanır.
+MP3’ler sekmesinden en fazla 10 dosya ekleyebilirsin (parça başına 25 MB).
+Dosyalar eklenirken paneli açık tut. Kayıtlar tarayıcı yeniden açılsa da korunur.
+Dinle / İndir / Sil düğmeleriyle parçaları yönet.
+Video üzerindeki Arka plan müziği bölümünden tek parçanın kutusunu işaretle.
+Müzik sesi sürgüsü düzeyi ayarlar; seçimi kaldırmak müziği kapatır.
+Müzik vokalin arkasında döngüyle çalar; duraklama, sarma ve hız değişimini izler.
+Mevcut kayıtları korumak için aynı klasördeki eklentiyi Yenile; kaldırıp yeniden kurma.

@@ -1,0 +1,49 @@
+# Yerel bağımlılıklar ve indirilen ses modelleri (tüm sürüm klasörleri)
+node_modules/
+.venv/
+venv/
+.models/
+
+# Kişisel ses kayıtları ve servis çalışma dosyaları
+.vocal-cache/
+.saved-vocals/
+.runtime/
+
+# Python önbellekleri ve test çıktıları
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+
+# İzole tarayıcı profilleri ve entegrasyon testi çıktıları
+.browser-profile/
+.integration-*/
+tests/integration-error.txt
+tests/popup.png
+playwright-report/
+test-results/
+
+# Yerel ortam değişkenleri ve günlükler
+.env
+.env.*
+!.env.example
+!.env.sample
+*.log
+
+# Dağıtım paketleri; kaynaklar ve eklentiye gömülü modeller takip edilir
+*.zip
+*.crx
+*.pem
+
+# İşletim sistemi ve düzenleyici geçici dosyaları
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~

@@ -1,0 +1,280 @@
+{
+  "seconds": 1500,
+  "samples_per_channel": 66150000,
+  "elapsed_seconds": 1615.8,
+  "peak_memory_mb": 1934.3,
+  "mp3_bytes": 36001375,
+  "checkpoints": [
+    {
+      "percent": 2,
+      "elapsed_seconds": 54.9,
+      "peak_memory_mb": 1864.6
+    },
+    {
+      "percent": 4,
+      "elapsed_seconds": 85.2,
+      "peak_memory_mb": 1879.7
+    },
+    {
+      "percent": 6,
+      "elapsed_seconds": 116.0,
+      "peak_memory_mb": 1879.7
+    },
+    {
+      "percent": 7,
+      "elapsed_seconds": 147.2,
+      "peak_memory_mb": 1879.7
+    },
+    {
+      "percent": 9,
+      "elapsed_seconds": 178.0,
+      "peak_memory_mb": 1881.6
+    },
+    {
+      "percent": 11,
+      "elapsed_seconds": 208.7,
+      "peak_memory_mb": 1881.6
+    },
+    {
+      "percent": 13,
+      "elapsed_seconds": 239.2,
+      "peak_memory_mb": 1882.8
+    },
+    {
+      "percent": 15,
+      "elapsed_seconds": 269.8,
+      "peak_memory_mb": 1882.8
+    },
+    {
+      "percent": 17,
+      "elapsed_seconds": 300.2,
+      "peak_memory_mb": 1882.8
+    },
+    {
+      "percent": 19,
+      "elapsed_seconds": 331.2,
+      "peak_memory_mb": 1882.8
+    },
+    {
+      "percent": 21,
+      "elapsed_seconds": 361.7,
+      "peak_memory_mb": 1882.8
+    },
+    {
+      "percent": 22,
+      "elapsed_seconds": 391.7,
+      "peak_memory_mb": 1884.2
+    },
+    {
+      "percent": 24,
+      "elapsed_seconds": 422.9,
+      "peak_memory_mb": 1884.2
+    },
+    {
+      "percent": 26,
+      "elapsed_seconds": 453.3,
+      "peak_memory_mb": 1884.2
+    },
+    {
+      "percent": 28,
+      "elapsed_seconds": 483.1,
+      "peak_memory_mb": 1884.2
+    },
+    {
+      "percent": 30,
+      "elapsed_seconds": 512.3,
+      "peak_memory_mb": 1884.2
+    },
+    {
+      "percent": 32,
+      "elapsed_seconds": 543.3,
+      "peak_memory_mb": 1884.2
+    },
+    {
+      "percent": 34,
+      "elapsed_seconds": 577.1,
+      "peak_memory_mb": 1917.2
+    },
+    {
+      "percent": 35,
+      "elapsed_seconds": 607.2,
+      "peak_memory_mb": 1918.9
+    },
+    {
+      "percent": 37,
+      "elapsed_seconds": 639.7,
+      "peak_memory_mb": 1918.9
+    },
+    {
+      "percent": 39,
+      "elapsed_seconds": 671.2,
+      "peak_memory_mb": 1918.9
+    },
+    {
+      "percent": 41,
+      "elapsed_seconds": 702.0,
+      "peak_memory_mb": 1918.9
+    },
+    {
+      "percent": 43,
+      "elapsed_seconds": 735.4,
+      "peak_memory_mb": 1919.7
+    },
+    {
+      "percent": 45,
+      "elapsed_seconds": 766.5,
+      "peak_memory_mb": 1920.8
+    },
+    {
+      "percent": 47,
+      "elapsed_seconds": 797.8,
+      "peak_memory_mb": 1921.2
+    },
+    {
+      "percent": 49,
+      "elapsed_seconds": 828.7,
+      "peak_memory_mb": 1921.2
+    },
+    {
+      "percent": 50,
+      "elapsed_seconds": 860.2,
+      "peak_memory_mb": 1921.2
+    },
+    {
+      "percent": 52,
+      "elapsed_seconds": 891.5,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 54,
+      "elapsed_seconds": 923.5,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 56,
+      "elapsed_seconds": 954.6,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 58,
+      "elapsed_seconds": 987.5,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 60,
+      "elapsed_seconds": 1022.3,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 62,
+      "elapsed_seconds": 1053.5,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 63,
+      "elapsed_seconds": 1079.6,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 65,
+      "elapsed_seconds": 1104.5,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 67,
+      "elapsed_seconds": 1129.4,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 69,
+      "elapsed_seconds": 1155.1,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 71,
+      "elapsed_seconds": 1180.9,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 73,
+      "elapsed_seconds": 1206.6,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 75,
+      "elapsed_seconds": 1233.3,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 77,
+      "elapsed_seconds": 1261.2,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 78,
+      "elapsed_seconds": 1287.7,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 80,
+      "elapsed_seconds": 1312.8,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 82,
+      "elapsed_seconds": 1337.5,
+      "peak_memory_mb": 1921.4
+    },
+    {
+      "percent": 84,
+      "elapsed_seconds": 1364.7,
+      "peak_memory_mb": 1921.7
+    },
+    {
+      "percent": 86,
+      "elapsed_seconds": 1390.9,
+      "peak_memory_mb": 1921.7
+    },
+    {
+      "percent": 88,
+      "elapsed_seconds": 1417.4,
+      "peak_memory_mb": 1921.7
+    },
+    {
+      "percent": 90,
+      "elapsed_seconds": 1443.5,
+      "peak_memory_mb": 1921.7
+    },
+    {
+      "percent": 91,
+      "elapsed_seconds": 1471.4,
+      "peak_memory_mb": 1921.7
+    },
+    {
+      "percent": 93,
+      "elapsed_seconds": 1499.7,
+      "peak_memory_mb": 1921.7
+    },
+    {
+      "percent": 95,
+      "elapsed_seconds": 1527.6,
+      "peak_memory_mb": 1921.7
+    },
+    {
+      "percent": 97,
+      "elapsed_seconds": 1553.8,
+      "peak_memory_mb": 1921.7
+    },
+    {
+      "percent": 99,
+      "elapsed_seconds": 1580.2,
+      "peak_memory_mb": 1921.7
+    },
+    {
+      "percent": 100,
+      "elapsed_seconds": 1594.0,
+      "peak_memory_mb": 1934.3
+    }
+  ],
+  "scope": "Synthetic real Demucs inference, sample length, MP3 roundtrip; not perceptual quality."
+}

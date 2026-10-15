@@ -1,0 +1,20 @@
+/* No global hiding, no full-frame opaque canvas and no ad-wide concealment. */
+[data-perde-layer] {
+  position:absolute!important;pointer-events:none!important;z-index:var(--perde-stack,0)!important;
+  overflow:hidden!important;background:transparent!important;border:0!important;
+  margin:0!important;padding:0!important;opacity:1!important;visibility:visible!important;
+}
+[data-perde-mask] {
+  position:absolute!important;pointer-events:none!important;background:#0a1019!important;
+  opacity:1!important;border:0!important;border-radius:4px!important;
+}
+[data-perde-label] {
+  position:absolute!important;top:9px!important;left:9px!important;padding:5px 8px!important;
+  background:rgba(11,19,29,.9)!important;color:#fff!important;border-radius:5px!important;
+  font:11px/1.4 system-ui,sans-serif!important;max-width:90%!important;
+}
+/* The player's own toolbar/menu stacking must remain untouched. The mask is
+   inserted immediately after its media, at the same stacking level. */
+img[data-perde-pending="true"] {filter:blur(14px)!important;}
+video[data-perde-starting="true"] {filter:blur(22px)!important;}
+[data-perde-gambling="true"], [data-perde-gambling="true"] * {visibility:hidden!important;pointer-events:none!important;}

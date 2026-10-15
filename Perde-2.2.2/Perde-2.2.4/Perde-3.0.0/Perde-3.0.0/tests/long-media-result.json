@@ -1,0 +1,9 @@
+{
+  "seconds": 2400,
+  "samples_per_channel": 105840000,
+  "largest_block_seconds": 30.0,
+  "blocks": 86,
+  "mp3_bytes": 57601296,
+  "elapsed_seconds": 43.41,
+  "scope": "40-minute streaming identity and real MP3 encode/decode; no Demucs or perceptual quality benchmark."
+}

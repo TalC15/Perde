@@ -1,0 +1,21 @@
+PERDE 2.2.2 — BAŞLANGIÇ
+
+Önemli: Yalnızca kadınları tespit etme yoktur. Görsel maskeleme bütün insanları hedefler.
+
+1. chrome://extensions > Geliştirici modu > Paketlenmemiş öğe yükle.
+2. Bu paketin eklenti klasörünü seç. Eski kurulum zaten aynı klasördeyse Yenile'ye bas.
+3. YouTube sekmelerini yenile. Eklenti panelinden Model testi yap.
+4. Ses için vocal-service/BASLAT.cmd dosyasını aç; eklentinin kimliğini gir.
+5. Gösterilen anahtarı eklenti paneli > Yerel vokal servisi bölümüne yapıştır.
+Güncellemede yerel servisi yeniden başlatıp yeni anahtarı bağla.
+6. YouTube'da sağ alttaki Perde · Vokal kutusundan Vokal oluştur'u seç.
+Türkçe ses erişilebiliyorsa otomatik seçilir. Türkçe yoksa mevcut ses kullanılır ve kutuda bilgi gösterilir.
+Önceki dilde hazırlanmış vokali iptal edip yeniden oluştur; güncellemede eklentiyi ve YouTube sekmesini de yenile.
+
+Bu bilgisayarda vokal bağımlılıkları ayrı .venv ortamına kuruldu. Başka bilgisayarda
+ilk kurulum için Python 3.12 ve Node.js 22+ gerekir; BASLAT.cmd eksik ses bileşenlerini kurar.
+Video süresi 3/5/10/15/25/40 dakika olarak seçilir. Mevcut kurulumda 40 dakikayı panelden seç. Hazırlama süresi donanıma bağlıdır.
+Diğer sitelerde koruma, eklenti panelinden tek tek izin verilerek açılır.
+
+Tüm kullanım, mahremiyet ve kapsam sınırları: README.md veya ONCE-OKU.html.
+Test kapsamı ve sonuçları: TEST-SONUCLARI.md.

@@ -1,0 +1,61 @@
+const path=require('node:path'),assert=require('node:assert/strict');
+const {chromium}=require(process.env.PERDE_PLAYWRIGHT||'C:/Users/Akyüz/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.PERDE_BROWSER||'C:/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe',headless:true,args:['--autoplay-policy=no-user-gesture-required']});
+ try{
+  const page=await browser.newPage();
+  await page.route('https://www.youtube.com/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><div id="movie_player" class="html5-video-player"><video class="html5-main-video" controls></video></div><div class="advertisement" id="bet"><a href="https://stake.com">canlı bahis</a></div><article id="article">canlı bahis hakkında haber</article>'}));
+  await page.goto('https://www.youtube.com/watch?v=abcdefghijk');
+  await page.evaluate(()=>{
+    const original=Element.prototype.attachShadow;Element.prototype.attachShadow=function(options){return original.call(this,{...options,mode:'open'});};
+    window.polls=0;window.calls=[];window.changes=[];window.messages=[];window.audioSelection='turkish';
+    window.chrome={runtime:{sendMessage:async m=>{calls.push(m);return m.type==='vocal-status'?{audioSelection,...(++polls===1?{ok:true,state:'separating',progress:50,remainingSeconds:80}:{ok:true,state:'ready'})}:{ok:true};},onMessage:{addListener:f=>messages.push(f)}},storage:{local:{get:async()=>({settings:{enabled:false,muteAds:true,vocalEnabled:true,blockGambling:true}})},onChanged:{addListener:f=>changes.push(f)}}};
+    const seconds=2400,rate=8000,data=new Uint8Array(44+seconds*rate*2),view=new DataView(data.buffer);
+    const str=(p,s)=>[...s].forEach((c,i)=>view.setUint8(p+i,c.charCodeAt(0)));
+    str(0,'RIFF');view.setUint32(4,data.length-8,true);str(8,'WAVE');str(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,rate,true);view.setUint32(28,rate*2,true);view.setUint16(32,2,true);view.setUint16(34,16,true);str(36,'data');view.setUint32(40,data.length-44,true);
+    document.querySelector('video').src=URL.createObjectURL(new Blob([data],{type:'audio/wav'}));
+  });
+  const root=path.resolve(__dirname,'../eklenti');
+  await page.addStyleTag({path:path.join(root,'content.css')});
+  for(const name of ['settings.js','audio-content.js','gambling.js'])await page.addScriptTag({path:path.join(root,name)});
+  await page.waitForFunction(()=>document.querySelector('video').duration===2400);
+  await page.waitForSelector('#perde-vocal-panel');
+  await page.locator('#perde-vocal-panel summary').click();
+  assert.match(await page.locator('#perde-vocal-panel #language').textContent(),/Türkçe ses varsa/);
+  await page.getByRole('button',{name:'Vokal oluştur',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('video').muted&&document.querySelector('video').paused);
+  await page.waitForFunction(()=>document.querySelector('#perde-vocal-panel').shadowRoot.querySelector('#progress').value===50);
+  assert.match(await page.locator('#perde-vocal-panel #status').textContent(),/%50/);
+  assert.match(await page.locator('#perde-vocal-panel #language').textContent(),/Türkçe ses kullanılıyor/);
+  await page.getByRole('button',{name:'Vokal ile oynat',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Vokal ile oynat',exact:true}).click();
+  await page.waitForFunction(()=>calls.some(x=>x.type==='vocal-sync'&&x.playing));
+  await page.waitForFunction(()=>calls.some(x=>x.type==='vocal-heartbeat'));
+  await page.evaluate(()=>{document.querySelector('video').currentTime=2350;document.querySelector('video').playbackRate=1.5;});
+  await page.waitForFunction(()=>calls.some(x=>x.type==='vocal-sync'&&x.time>=2350&&x.rate===1.5));
+  await page.evaluate(()=>{calls.length=0;document.getElementById('movie_player').classList.add('ad-showing');});
+  await page.waitForFunction(()=>calls.some(x=>x.type==='vocal-sync'&&!x.playing));
+  assert.equal(await page.locator('video').evaluate(v=>v.muted),true);
+  await page.evaluate(()=>document.getElementById('movie_player').classList.remove('ad-showing'));
+  await page.getByRole('button',{name:'İptal · asıl sese dön',exact:true}).click();
+  await page.waitForFunction(()=>!document.querySelector('video').muted);
+  assert.match(await page.locator('#perde-vocal-panel #language').textContent(),/Türkçe ses varsa/);
+  await page.evaluate(()=>{audioSelection='fallback';});
+  await page.getByRole('button',{name:'Vokal oluştur',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('#perde-vocal-panel').shadowRoot.querySelector('#language').textContent.includes('Türkçe ses parçasına ulaşılamadı'));
+  await page.getByRole('button',{name:'İptal · asıl sese dön',exact:true}).click();
+  await page.waitForFunction(()=>!document.querySelector('video').muted);
+  // Advertising-only mute restores an already-muted video's original state too.
+  await page.evaluate(()=>{document.querySelector('video').muted=true;document.getElementById('movie_player').classList.add('ad-showing');});
+  await page.waitForTimeout(300);
+  await page.evaluate(()=>document.getElementById('movie_player').classList.remove('ad-showing'));
+  await page.waitForTimeout(300);assert.equal(await page.locator('video').evaluate(v=>v.muted),true);
+  assert.equal(await page.locator('#bet').evaluate(e=>e.inert),true);
+  assert.equal(await page.locator('#article').evaluate(e=>e.inert),false);
+  await page.evaluate(()=>messages.forEach(f=>f({type:'site-disable'})));
+  assert.equal(await page.locator('#bet').evaluate(e=>e.inert),false);
+  await page.evaluate(()=>changes.forEach(f=>f({settings:{newValue:{vocalEnabled:false,muteAds:false}}},'local')));
+  assert.equal(await page.locator('#perde-vocal-panel').isVisible(),false);
+  console.log('PASS: Turkish audio note, no-Turkish fallback/reset, 40-minute media acceptance, separation progress, heartbeat, late seek/rate sync, ad pause, mute restoration, gambling scope, panel disable (mock service).');
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

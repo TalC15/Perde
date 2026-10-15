@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="tr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Perde</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+<header>
+  <div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 32 36" fill="none"><path d="M7 6h10a8 8 0 0 1 0 16h-4v8H7V6Z" fill="currentColor"/><path d="M13 12v4h4a2 2 0 0 0 0-4h-4Z" fill="#a8f0cf"/></svg></span><div><h1>Perde <small class="version">3</small></h1><p>Görüntü ve ses, senin kontrolünde.</p></div></div>
+  <span class="local-badge"><span aria-hidden="true"></span>Cihazında</span>
+</header>
+<nav class="tabs" role="tablist" aria-label="Perde bölümleri">
+  <button id="tab-protection" role="tab" aria-selected="true" aria-controls="panel-protection">Koruma</button>
+  <button id="tab-vocals" role="tab" aria-selected="false" aria-controls="panel-vocals" tabindex="-1">Vokaller <span id="library-count" class="count-badge">0</span></button>
+  <button id="tab-music" role="tab" aria-selected="false" aria-controls="panel-music" tabindex="-1">MP3’ler</button>
+  <button id="tab-settings" role="tab" aria-selected="false" aria-controls="panel-settings" tabindex="-1">Ayarlar</button>
+</nav>
+<main>
+  <section id="panel-protection" role="tabpanel" aria-labelledby="tab-protection">
+    <section id="protection-state" class="state" data-state="loading" aria-live="polite">
+      <div class="state-heading"><span class="status-dot" aria-hidden="true"></span><strong id="status">Durum kontrol ediliyor…</strong></div>
+      <p id="current-site" class="site-name"></p><p id="detail"></p>
+    </section>
+    <section class="card">
+      <label class="toggle primary-toggle"><span><strong>İnsan bölgelerini ört</strong><small>Algılanan bütün insanlara uygulanır.</small></span><input id="enabled" type="checkbox" role="switch"></label>
+      <div class="field"><label for="profile">Maskeleme hassasiyeti</label><select id="profile" aria-describedby="profile-help"><option value="loose">Hafif · daha dar maskeler</option><option value="balanced">Dengeli · önerilen</option><option value="high">Yüksek · daha geniş maskeler</option></select><p id="profile-help" class="help">Yüksek hassasiyet, daha fazla bölgeyi örtebilir.</p></div>
+      <label class="toggle compact"><span>Analiz hatasında videoyu duraklat</span><input id="pauseOnError" type="checkbox" role="switch"></label>
+    </section>
+    <details class="card site-card"><summary>Diğer sitelerde kullan<span class="summary-hint">Site izni</span></summary><p class="help">Yalnızca izin verdiğin sitelerde çalışır. Okunamayan görseller bulanık kalır; bazı özel video oynatıcıları desteklenmez.</p><button id="allow-site" class="full">Bu sitede korumayı aç</button><p id="site-status" class="message" role="status"></p><ul id="sites"></ul></details>
+    <p class="footnote">Görüntüler cihazında analiz edilir. Algılama hatasız değildir.</p>
+  </section>
+
+  <section id="panel-vocals" role="tabpanel" aria-labelledby="tab-vocals" hidden>
+    <section class="vocal-library" aria-labelledby="library-heading">
+      <div class="section-heading"><div><p class="eyebrow">SANA AİT KÜTÜPHANE</p><h2 id="library-heading">Kaydedilmiş vokaller</h2></div><button id="refresh-library" class="icon-button" aria-label="Kaydedilmiş vokaller listesini yenile" title="Listeyi yenile"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M20 7v5h-5M4 17v-5h5M6.1 6.1a8.3 8.3 0 0 1 13.7 5.4M17.9 17.9a8.3 8.3 0 0 1-13.7-5.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+      <p class="help">Videoyu yeniden açtığında kayıtlı ses otomatik yüklenir. Servisin açık olması gerekmez.</p>
+      <p id="library-summary">Kayıtlar yükleniyor…</p><ul id="vocal-library-list" aria-label="Tarayıcıya kaydedilmiş vokaller"></ul>
+      <p id="library-status" class="message" role="status"></p>
+      <details class="library-management"><summary>Kayıtları yönet</summary><p class="help">Kayıtlar bu tarayıcı profilinde tutulur. Eklentiyi kaldırmak veya eklenti verilerini temizlemek kayıtları siler.</p><button id="clear-library" class="danger full" disabled>Tarayıcıdaki tüm vokalleri sil</button><div id="library-clear-confirm" class="delete-confirmation" hidden><p>Tüm kayıtlar silinecek. Tekrar dinlemek için vokalleri yeniden hazırlaman gerekir.</p><div class="row"><button id="confirm-clear-library" class="danger">Evet, tümünü sil</button><button id="cancel-clear-library" class="secondary">Vazgeç</button></div></div></details>
+    </section>
+    <details class="card service-card"><summary>Yeni vokal hazırla<span id="service-state" class="service-badge">Bağlantı kontrol ediliyor</span></summary>
+      <p class="help">Yeni ses hazırlamak için yerel servise bağlan. Kayıtlı seslerin bağlantı gerektirmez.</p>
+      <div id="service-credentials"><ol class="steps"><li>Paket içindeki <strong>vocal-service / BASLAT.cmd</strong> dosyasını aç.</li><li>Gösterilen anahtarı aşağıya yapıştır.</li></ol>
+      <label for="token">Servis anahtarı</label><input class="text" id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Anahtarı buraya yapıştır" aria-describedby="token-help"><p id="token-help" class="help">Anahtar tarayıcı kapanınca silinir. Servisi yeniden başlattıysan yeni anahtarı kullan.</p></div>
+      <div class="row"><button id="connect">Servise bağlan</button><button id="disconnect" class="secondary">Bağlantıyı kes</button></div><p id="vocal-status" class="message" role="status"></p>
+      <p class="help">Ses cihazında işlenir. Şarkı sözleri vokalde kalabilir. Video üzerindeki “Vokali tarayıcıda sakla” açıkken hazır ses kütüphaneye kaydedilir.</p>
+      <details class="legacy-records"><summary>Önceki sürümdeki kayıtlar</summary><p class="help">Servis bağlıyken aynı videoyu aç; bilgisayarda bulunan eski vokal tarayıcıya aktarılır.</p><button id="clear-cache" class="danger full">Servis klasöründeki eski vokalleri sil</button></details>
+    </details>
+  </section>
+
+  <section id="panel-music" role="tabpanel" aria-labelledby="tab-music" hidden>
+    <section class="card music-intro"><p class="eyebrow">VOKALİNE EŞLİK ETSİN</p><h2>Arka plan MP3 kitaplığı</h2>
+      <p class="help">Sevdiğin parçaları buraya ekle. Videodaki vokal panelinden birini seç; vokalin arkasında, video bitene kadar döngüyle çalsın.</p>
+      <label for="music-files" class="import-label">MP3 ekle · çoklu seçim</label><input id="music-files" type="file" accept=".mp3,audio/mpeg,audio/mp3" multiple aria-describedby="music-limits">
+      <p id="music-limits" class="help">En fazla 10 parça · parça başına 25 MB. Eklenirken paneli açık tut. Dosyalar tarayıcıda saklanır ve kendiliğinden silinmez.</p>
+      <p id="music-status" class="message" role="status"></p>
+    </section>
+    <section class="card"><div class="section-heading"><h2>Kaydettiğin parçalar</h2><span id="music-count" class="count-badge">0 / 10</span></div><p id="music-empty" class="help">Henüz MP3 eklenmedi. Birden fazla dosyayı birlikte seçerek kendi paketini ekleyebilirsin.</p><ul id="music-list" aria-label="Kaydedilmiş MP3 parçaları"></ul></section>
+    <p class="footnote">İndir ile bilgisayarına bir kopya alabilirsin. Eklentiyi kaldırmak veya tarayıcıdaki eklenti verilerini temizlemek kitaplığı siler.</p>
+  </section>
+
+  <section id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" hidden>
+    <section class="card"><h2>İzleme tercihleri</h2><label class="toggle compact"><span>YouTube reklamlarında sesi kapat</span><input id="muteAds" type="checkbox" role="switch"></label><label class="toggle compact"><span>Bilinen kumar reklamlarını gizle</span><input id="blockGambling" type="checkbox" role="switch"></label><p class="help">Kumar filtresi bilinen reklamları gizler; tüm reklamları tespit edemez.</p></section>
+    <section class="card"><h2>Vokal tercihleri</h2><label class="toggle compact"><span>YouTube’da vokal panelini göster</span><input id="vocalEnabled" type="checkbox" role="switch"></label><label for="maxMinutes">Hazırlanabilecek en uzun video</label><select id="maxMinutes"><option value="3">3 dakika</option><option value="5">5 dakika</option><option value="10">10 dakika</option><option value="15">15 dakika</option><option value="25">25 dakika</option><option value="40">40 dakika</option></select><p class="help">Uzun videoların hazırlanması daha fazla zaman alır.</p></section>
+    <details class="card"><summary>Kontrol ve yardım</summary><p id="counts" class="help"></p><div class="row"><button id="retry" class="secondary">Analizi yeniden dene</button><button id="check" class="secondary">Modelleri kontrol et</button></div><div class="links"><button id="test" class="text-button">Kendi dosyanla test et ↗</button><button id="diagnostic" class="text-button">Hata bilgisini kopyala</button></div></details>
+    <a class="guide-link" href="guide.html" target="_blank" rel="noopener">Kurulum, mahremiyet ve sınırlar <span aria-hidden="true">↗</span></a>
+  </section>
+</main>
+<footer><p id="save" role="status">Ayarlar otomatik kaydedilir.</p><span>Hesap yok · Görüntü yükleme yok</span></footer>
+<script src="settings.js"></script><script src="popup.js"></script><script src="music-library.js"></script><script src="popup-music.js"></script>
+</body></html>
