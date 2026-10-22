@@ -8,7 +8,7 @@
 - **Ses ayırma ölçümleri** (bu bilgisayar, AMD Radeon, DirectML): MDX-Net 30 sn ses 12,2 sn’de, 171 sn’lik şarkı 60,5 sn’de (2,8× gerçek zaman). İşlemcide MDX ~0,9×, Demucs ~1,2×. MUSDB18 örnek kesitinde vokal SDR: MDX 8,88 dB, Demucs 8,09 dB. STFT/ISTFT uygulaması PyTorch ile karşılaştırıldı (bağıl hata 2·10⁻⁷).
 - **Kurulum** `BASLAT.cmd` ile gerçekten çalıştırıldı: `onnxruntime-directml` kuruldu, model indirildi ve SHA-256 ile doğrulandı.
 - **Görsel**: 165 yüzlük örnek sette cinsiyet doğruluğu %98,8; video kare kaybı koruma açıkken %10–14’ten %1–2’ye indi (başsız Brave, 12 sn örnek video). Canlı YouTube’da ölçülmedi.
-- Bilinen: `tests/browser-audio-integration.cjs` “audio fetch” adımında zaman aşımına uğruyor; aynı test commit edilmiş 3.0.0 sürümünde de aynı yerde başarısız. `browser-controls.cjs` ve `browser-library-smoke.cjs` geçti. `SHA256SUMS.json` bu değişikliklerden sonra yeniden üretilmedi.
+- `tests/browser-audio-integration.cjs`, `browser-controls.cjs` ve `browser-library-smoke.cjs` gerçek Brave’da geçti. Entegrasyon testi 3.0.0’da da zaman aşımına uğruyordu: başsız tarayıcıda arka plan ses belgesi ~11 sn’de açılıyor, testin sabit beklemeleri (15 sn / 3 sn) yetmiyordu; beklemeler uzatıldı. `SHA256SUMS.json` yeniden üretildi (99 dosya, hepsi git’te izleniyor).
 
 
 ## 3.0.0 · bağlantı, sürükleme ve arka plan müziği

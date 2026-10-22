@@ -3,7 +3,8 @@
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
 const {chromium}=require(process.env.PERDE_PLAYWRIGHT||'C:/Users/Akyüz/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function until(fn,label){for(let i=0;i<100;i++){if(await fn())return;await sleep(150);}throw Error('Timed out: '+label);}
+// Headless offscreen documents can take 10+ s to load the vision scripts.
+async function until(fn,label){for(let i=0;i<500;i++){if(await fn())return;await sleep(150);}throw Error('Timed out: '+label);}
 function wave(){const rate=8000,seconds=60,b=Buffer.alloc(44+rate*seconds*2);b.write('RIFF',0);b.writeUInt32LE(b.length-8,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(rate,24);b.writeUInt32LE(rate*2,28);b.writeUInt16LE(2,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(b.length-44,40);return b;}
 console.log('Integration: starting isolated fixture');
 (async()=>{
@@ -56,7 +57,7 @@ console.log('Integration: starting isolated fixture');
   async function readAudio(){
    const id=++sequence;
    return new Promise((resolve,reject)=>{
-    const timer=setTimeout(()=>{browserCdp.off('Target.receivedMessageFromTarget',receive);reject(Error('No audio state'));},3000);
+    const timer=setTimeout(()=>{browserCdp.off('Target.receivedMessageFromTarget',receive);reject(Error('No audio state'));},20000);
     function receive(event){if(event.sessionId!==sessionId)return;const msg=JSON.parse(event.message);if(msg.id!==id)return;clearTimeout(timer);browserCdp.off('Target.receivedMessageFromTarget',receive);resolve(msg.result?.result?.value);}
     browserCdp.on('Target.receivedMessageFromTarget',receive);
     browserCdp.send('Target.sendMessageToTarget',{sessionId,message:JSON.stringify({id,method:'Runtime.evaluate',params:{expression:'vocalAudio ? ({time:vocalAudio.currentTime,paused:vocalAudio.paused,rate:vocalAudio.playbackRate,ready:vocalAudio.readyState}) : null',returnByValue:true}})}).catch(reject);

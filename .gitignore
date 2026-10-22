@@ -40,6 +40,17 @@ test-results/
 *.crx
 *.pem
 
+# Anahtar/sertifika dosyaları ve yerel araç ayarları
+*.key
+*.p12
+*.pfx
+.claude/
+
+# BASLAT.cmd ile indirilen ses modeli ve yarım kalan indirme/durum dosyaları
+*.onnx
+*.part
+*.next
+
 # İşletim sistemi ve düzenleyici geçici dosyaları
 .DS_Store
 Thumbs.db
