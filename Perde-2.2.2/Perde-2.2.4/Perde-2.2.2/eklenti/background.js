@@ -1,8 +1,8 @@
 'use strict';
 importScripts('settings.js','vocal-library.js','music-library.js');
 const {defaults:DEFAULTS,normalize,videoId}=PerdeSettings;
-let opening=null;
-const LOCAL='http://127.0.0.1:8765';
+let opening=null,positionReportedAt=0;
+const LOCAL='http://127.0.0.1:8765',STREAM_START_SECONDS=15;
 const SCRIPTS=['settings.js','tracking.js','motion.js','content.js','panel-drag.js','audio-music-controls.js','audio-content.js','gambling.js'];
 const youtube=url=>{try{return new URL(url).protocol==='https:'&&/(^|\.)youtube(?:-nocookie)?\.com$/.test(new URL(url).hostname);}catch{return false;}};
 const ownPage=sender=>sender.id===chrome.runtime.id&&sender.url?.startsWith(chrome.runtime.getURL(''));
@@ -30,7 +30,8 @@ async function service(path,method='GET',body,timeout=15000,tokenOverride){
   if(!vocalToken)throw Error('Eklenti panelinden yerel servis anahtarını bağla.');
   if(!await permitted(LOCAL))throw Error('Yerel servis izni verilmedi.');
   let response;try{response=await fetch(LOCAL+path,{method,headers:{Authorization:`Bearer ${vocalToken}`,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,credentials:'omit',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(timeout)});}catch{throw Error('Yerel vokal servisine ulaşılamadı. Servisi başlatıp yeniden dene.');}
-  const data=await response.json();if(!response.ok){const error=Error(data.error||'Vokal servisi işlemi reddetti.');error.status=response.status;throw error;}return data;
+  let data;try{data=await response.json();}catch{throw Error('Yerel vokal servisinden eksik yanıt alındı. Bağlantı yeniden denenecek.');}
+  if(!response.ok){const error=Error(data.error||'Vokal servisi işlemi reddetti.');error.status=response.status;throw error;}return data;
 }
 async function cancelVocal(){
   const {vocalJob}=await chrome.storage.session.get('vocalJob');
@@ -130,8 +131,11 @@ async function vocal(message,sender){
       job.cached=job.cached||result.cached===true;
       await chrome.storage.session.set({vocalJob:job});
     }
-    if(result.state==='ready'){
+    // The first part of the vocal can play while the rest is still separated.
+    const playable=result.state==='ready'||result.streamable===true&&['separating','encoding'].includes(result.state)&&(result.processedSeconds>=STREAM_START_SECONDS||result.state==='encoding');
+    if(playable){
       const loaded=await loadVocal(job,message.retry===true);
+      if(loaded.state==='transferring'&&result.state!=='ready')return {...result,ok:true,saved:false,saveVocal:job.saveVocal};
       return {...result,...loaded,ok:true,cached:job.cached,saveVocal:job.saveVocal,audioSelection:job.audioSelection};
     }
     return {...result,ok:true,saved:false,saveVocal:job.saveVocal};
@@ -139,6 +143,8 @@ async function vocal(message,sender){
   if(message.type==='vocal-sync'&&job.loaded){
     const {backgroundTrackId=null,musicVolume=.15}=await chrome.storage.local.get({backgroundTrackId:null,musicVolume:.15});
     const result=await engine({type:'audio-sync',time:message.time,rate:message.rate,volume:message.volume,playing:message.playing,musicId:backgroundTrackId,musicVolume},'perde-audio');
+    // The service slows down when it is far ahead of the listener.
+    if(result?.complete===false&&job.source==='service'&&Date.now()-positionReportedAt>5000){positionReportedAt=Date.now();service(`/jobs/${job.id}/position`,'POST',{position:message.time},3000).catch(()=>{});}
     if(result?.reload){job.loaded=false;if(await PerdeVocalLibrary.info(job.videoId))job.source='browser';await chrome.storage.session.set({vocalJob:job});}
     return result;
   }
@@ -174,7 +180,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     if(message?.type==='vocal-lookup')return vocal(message,sender);
     if(message?.type?.startsWith('vocal-'))return serializedVocal(()=>vocal(message,sender));
     switch(message?.type){
-      case 'detect':return engine({type:'engine-detect',image:message.image,confidence:message.confidence,detail:message.detail});
+      case 'detect':return engine({type:'engine-detect',image:message.image,confidence:message.confidence,detail:message.detail,frame:message.frame,genderLimit:message.genderLimit,genders:message.genders!==false});
       case 'image-read':return {ok:true,image:await readImage(message.url)};
       case 'model-check':return engine({type:'engine-status'});
       case 'diagnostics':return {ok:true,version:chrome.runtime.getManifest().version};

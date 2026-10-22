@@ -23,28 +23,34 @@ def reference_stats(source):
     return mean, math.sqrt(variance)
 
 
-def process_wav(input_path, output_path, prepare, on_progress=None, block_seconds=30, overlap_seconds=2):
+def process_wav(input_path, output, prepare, on_progress=None, block_seconds=30, overlap_seconds=2, first_block_seconds=None):
     """prepare(sr, channels, mean, std) -> block transform (frames x channels).
 
+    output is a WAV path or a sink with write(frames x channels float32); a sink
+    receives each finished part at once, so playback can start before the end.
     Only one block and its short pending overlap survive each iteration. The
     overlap consumes no extra output samples, so duration never accumulates drift.
+    A shorter first block gives the listener audio sooner.
     """
     import numpy as np
     import soundfile as sf
-    if block_seconds <= 2 * overlap_seconds or overlap_seconds <= 0:
+    first_block_seconds = first_block_seconds or block_seconds
+    if min(block_seconds, first_block_seconds) <= 2 * overlap_seconds or overlap_seconds <= 0:
         raise ValueError('Geçersiz ses blok boyutu.')
     with sf.SoundFile(str(input_path)) as source:
         sr, channels, total = source.samplerate, source.channels, len(source)
         mean, std = reference_stats(source)
         transform = prepare(sr, channels, mean, std)
-        block_size, overlap = round(block_seconds * sr), round(overlap_seconds * sr)
-        stride = block_size - overlap
+        overlap = round(overlap_seconds * sr)
+        sink = output if hasattr(output, 'write') else sf.SoundFile(str(output), 'w', samplerate=sr, channels=channels, subtype='PCM_16')
         pending = None
         written = 0
-        with sf.SoundFile(str(output_path), 'w', samplerate=sr, channels=channels, subtype='PCM_16') as output:
-            for offset in range(0, max(1, total-overlap), stride):
+        offset = 0
+        try:
+            while True:
+                size = round((first_block_seconds if offset == 0 else block_seconds) * sr)
                 source.seek(offset)
-                block = source.read(block_size, dtype='float32', always_2d=True)
+                block = source.read(size, dtype='float32', always_2d=True)
                 result = np.asarray(transform(block), dtype=np.float32)
                 if result.shape != block.shape or not np.isfinite(result).all():
                     raise ValueError('Ayrılan sesin biçimi veya örnek sayısı geçersiz.')
@@ -59,15 +65,19 @@ def process_wav(input_path, output_path, prepare, on_progress=None, block_second
                     result[:n] = pending*(1-weight) + result[:n]*weight
                 final = offset + len(block) >= total
                 emit = len(result) if final else len(result)-overlap
-                output.write(result[:emit])
+                sink.write(result[:emit])
                 written += emit
                 pending = None if final else result[emit:].copy()
                 if on_progress:
                     on_progress(written, total, sr)
                 if final:
                     break
+                offset += size - overlap
             if written != total:
                 raise ValueError('Vokal süresi kaynakla uyuşmuyor.')
-    if sf.info(str(output_path)).frames != total:
+        finally:
+            if sink is not output:
+                sink.close()
+    if not hasattr(output, 'write') and sf.info(str(output)).frames != total:
         raise ValueError('Yazılan vokal süresi doğrulanamadı.')
     return total, sr

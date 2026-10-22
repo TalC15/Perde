@@ -1,4 +1,4 @@
-"""Loopback-only, authenticated, ephemeral Demucs job service (stdlib HTTP)."""
+"""Loopback-only, authenticated, ephemeral vocal separation service (stdlib HTTP)."""
 from __future__ import annotations
 import argparse
 import atexit
@@ -47,6 +47,19 @@ def stop_process(process):
         process.wait(timeout=10)
 
 
+def read_state(path, attempts=2):
+    for attempt in range(attempts):
+        try:
+            return json.loads(path.read_text(encoding='utf-8'))
+        except FileNotFoundError:
+            return None
+        except (PermissionError, ValueError):
+            time.sleep(.05 * (attempt + 1))  # Mid-replace or briefly locked by a scanner.
+        except OSError:
+            return None
+    return None
+
+
 def cleanup_stale(runtime, active=()):
     """A locked leftover must not prevent startup; retry on the next sweep."""
     runtime = Path(runtime).resolve()
@@ -64,9 +77,10 @@ def cleanup_stale(runtime, active=()):
 
 
 class Jobs:
-    def __init__(self, runtime, device='cpu', cache_root=None):
+    def __init__(self, runtime, device='cpu', cache_root=None, engine='auto'):
         self.runtime = Path(runtime).resolve()
         self.device = device
+        self.engine = engine
         self.jobs = {}
         self.lock = threading.RLock()
         self.cache = VocalCache(cache_root or self.runtime / '.saved-vocals')
@@ -107,7 +121,7 @@ class Jobs:
                     # An unavailable library must not prevent an explicitly requested separation.
                     (folder / 'vocals.mp3').unlink(missing_ok=True)
             # Arguments are passed as an array; no shell or user-provided URL is used.
-            args = [sys.executable, str(ROOT / 'worker.py'), str(folder), video_id, str(minutes), self.device]
+            args = [sys.executable, str(ROOT / 'worker.py'), str(folder), video_id, str(minutes), self.device, self.engine]
             try:
                 job['process'] = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                     creationflags=background_creation_flags(), start_new_session=os.name != 'nt', env=worker_environment())
@@ -130,9 +144,14 @@ class Jobs:
                 raise KeyError('Vokal oturumu sona erdi.')
             if touch:
                 job['last'] = time.monotonic()
+            # A worker that just exited has written its final state; read it before
+            # judging the exit, and retry a read that Windows briefly refuses.
+            finished = job['process'] is not None and job['process'].poll() is not None
+            state = read_state(job['folder'] / 'state.json', attempts=8 if finished else 2)
             try:
+                if state is None:
+                    raise ValueError
                 state_path = job['folder'] / 'state.json'
-                state = json.loads(state_path.read_text(encoding='utf-8'))
                 modified = state_path.stat().st_mtime_ns
                 if modified != job['state_mtime']:
                     job['state_mtime'] = modified
@@ -144,6 +163,9 @@ class Jobs:
                         job['audioSelection'] = state['audioSelection']
                     if isinstance(state.get('audioLanguage'), str) and re.fullmatch('[a-z]{2,3}', state['audioLanguage']):
                         job['audioLanguage'] = state['audioLanguage']
+                    job['streamable'] = state.get('streamable') is True
+                    if state.get('device') in ('gpu', 'cpu'):
+                        job['device'] = state['device']
                     for field in ('progress', 'processedSeconds', 'totalSeconds', 'remainingSeconds'):
                         value = state.get(field)
                         if type(value) in (int, float) and 0 <= value <= 86400:
@@ -152,8 +174,8 @@ class Jobs:
                             job.pop(field, None)
             except (FileNotFoundError, ValueError, OSError):
                 pass
-            if job['process'] and job['process'].poll() is not None and job['state'] not in ('ready', 'error'):
-                job.update(state='error', error='Ses ayrılamadı. Kurulumu ve internet bağlantısını kontrol et.')
+            if finished and job['state'] not in ('ready', 'error'):
+                job.update(state='error', error='Ses işçisi beklenmedik biçimde kapandı (bellek yetersiz kalmış olabilir). Yeniden dene.')
             if job['state'] == 'ready' and job['saveVocal'] and not job['saved'] and not job.get('saveAttempted'):
                 job['saveAttempted'] = True
                 try:
@@ -161,7 +183,24 @@ class Jobs:
                     job.update(saved=True, cacheWarning=None)
                 except (OSError, ValueError):
                     job['cacheWarning'] = 'Vokal oynatılabilir ancak diske kaydedilemedi. Boş alanı kontrol edip kayıt kutusunu yeniden aç.'
-            return {k: job[k] for k in ('id', 'state', 'error', 'progress', 'processedSeconds', 'totalSeconds', 'remainingSeconds', 'audioLanguage', 'audioSelection', 'saveVocal', 'saved', 'cached', 'cacheWarning') if k in job}
+            return {k: job[k] for k in ('id', 'state', 'error', 'progress', 'processedSeconds', 'totalSeconds', 'remainingSeconds', 'audioLanguage', 'audioSelection', 'streamable', 'device', 'saveVocal', 'saved', 'cached', 'cacheWarning') if k in job}
+
+    def report_position(self, key, position):
+        """The listener's position lets the worker slow down when far ahead."""
+        if type(position) not in (int, float) or not 0 <= position <= MAX_MINUTES * 60 + 60:
+            raise ValueError('Geçersiz oynatma konumu.')
+        with self.lock:
+            job = self.jobs[key]
+            job['last'] = time.monotonic()
+            if job['state'] not in ('separating', 'encoding'):
+                return {'ok': True}
+            pending = job['folder'] / 'control.next'
+            try:
+                pending.write_text(json.dumps({'position': position, 'at': time.time()}), encoding='utf-8')
+                pending.replace(job['folder'] / 'control.json')
+            except OSError:
+                pass  # The worker is reading it; the next report follows in seconds.
+            return {'ok': True}
 
     def retain(self, key, enabled):
         if type(enabled) is not bool:
@@ -264,17 +303,34 @@ class Handler(BaseHTTPRequestHandler):
                 state = self.server.jobs.status(key)
                 if not audio:
                     self.send_json(200, state); return
-                if state['state'] != 'ready':
+                if state['state'] == 'error':
+                    self.send_json(409, {'error': state.get('error') or 'Ses ayrılamadı.'}); return
+                # A separating job serves the part of the MP3 that is already
+                # encoded; the total stays unknown ("*") until the job is ready.
+                complete = state['state'] == 'ready'
+                if not complete and not state.get('streamable'):
                     self.send_json(409, {'error': 'Vokal henüz hazır değil.'}); return
                 path = self.server.jobs.jobs[key]['folder'] / 'vocals.mp3'
-                size = path.stat().st_size
+                try:
+                    size = path.stat().st_size
+                except FileNotFoundError:
+                    if complete: raise
+                    size = 0
                 start, end = 0, size - 1
                 requested = self.headers.get('Range')
                 if requested:
                     parts = re.fullmatch(r'bytes=(\d+)-(\d+)', requested)
-                    if not parts or not 0 <= int(parts[1]) <= int(parts[2]) or int(parts[1]) >= size:
+                    if not parts or not 0 <= int(parts[1]) <= int(parts[2]):
                         self.send_json(416, {'error': 'Geçersiz ses aralığı.'}); return
                     start, end = int(parts[1]), min(int(parts[2]), size - 1)
+                if start >= size:
+                    if complete:
+                        self.send_json(416, {'error': 'Geçersiz ses aralığı.'}); return
+                    self.send_response(204)  # Not encoded yet: ask again shortly.
+                    self.send_header('Cache-Control', 'no-store')
+                    self.end_headers(); return
+                if not complete and not requested:
+                    self.send_json(416, {'error': 'Hazırlanan ses yalnızca parça parça okunabilir.'}); return
                 stream = path.open('rb')
             # Never hold the job lock while sending media: polling and cancellation stay responsive.
             with stream:
@@ -284,7 +340,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header('Content-Length', str(end - start + 1))
                 self.send_header('Accept-Ranges', 'bytes')
                 if requested:
-                    self.send_header('Content-Range', f'bytes {start}-{end}/{size}')
+                    self.send_header('Content-Range', f'bytes {start}-{end}/{size if complete else "*"}')
                 self.send_header('Cache-Control', 'no-store')
                 self.send_header('X-Content-Type-Options', 'nosniff')
                 self.end_headers()
@@ -302,7 +358,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.authorized(): return
         retention = re.fullmatch(r'/jobs/([a-f0-9]{32})/retention', self.path)
-        if self.path != '/jobs' and not retention:
+        position = re.fullmatch(r'/jobs/([a-f0-9]{32})/position', self.path)
+        if self.path != '/jobs' and not retention and not position:
             self.send_json(404, {'error': 'İşlem bulunamadı.'}); return
         try:
             length = int(self.headers.get('Content-Length', '0'))
@@ -311,6 +368,8 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length))
             if retention:
                 self.send_json(200, self.server.jobs.retain(retention[1], data.get('saveVocal') if isinstance(data, dict) else None))
+            elif position:
+                self.send_json(200, self.server.jobs.report_position(position[1], data.get('position') if isinstance(data, dict) else None))
             else:
                 self.send_json(202, self.server.jobs.create(data))
         except KeyError:
@@ -347,6 +406,7 @@ def main():
     parser = argparse.ArgumentParser(description='Perde yerel vokal servisi')
     parser.add_argument('--extension-id', required=True, help='chrome://extensions sayfasındaki 32 harfli kimlik')
     parser.add_argument('--device', choices=['cpu', 'cuda'], default='cpu')
+    parser.add_argument('--engine', choices=['auto', 'mdx', 'demucs'], default='auto', help='auto: MDX-Net (GPU/CPU) varsa onu, yoksa Demucs kullanır')
     args = parser.parse_args()
     if not re.fullmatch('[a-p]{32}', args.extension_id):
         parser.error('Eklenti kimliği 32 küçük a-p harfinden oluşmalı.')
@@ -359,7 +419,7 @@ def main():
         print('Önceki oturumdan kilitli bir dosya kaldı; servis açılıyor, temizlik yeniden denenecek.', flush=True)
     server.token = secrets.token_urlsafe(32)
     server.extension_origin = 'chrome-extension://'+args.extension_id
-    server.jobs = Jobs(runtime, args.device, ROOT / '.saved-vocals')
+    server.jobs = Jobs(runtime, args.device, ROOT / '.saved-vocals', args.engine)
     atexit.register(server.jobs.close)
     print('Perde hazır: http://127.0.0.1:8765\nBu oturumun anahtarını eklenti paneline yapıştır:\n'+server.token, flush=True)
     print('Anahtar kapanışta geçersiz olur. Çıkış: Ctrl+C. İşlem süresi donanımına bağlıdır.', flush=True)

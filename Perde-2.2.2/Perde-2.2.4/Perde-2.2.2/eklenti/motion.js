@@ -24,6 +24,13 @@ function displacement(box,a,b){
  }
  return best<zero*.86?answer:[0,0];
 }
+// Mean absolute brightness change; a hard cut between shots gives a large value.
+function difference(a,b){
+ if(!a||!b||a.data.length!==b.data.length)return 0;
+ let sum=0,count=0;
+ for(let i=0;i<a.data.length;i+=3){sum+=Math.abs(a.data[i]-b.data[i]);count++;}
+ return count?sum/count:0;
+}
 function advance(items,a,b){return items.map(item=>{
  const [dx,dy]=displacement(item.box,a,b);const box=clip([item.box[0]+dx,item.box[1]+dy,item.box[2],item.box[3]]);
  return {...item,box};
@@ -35,6 +42,6 @@ function replay(boxes,frames,capture){
  for(let i=start+1;i<frames.length;i++)items=advance(items,frames[i-1],frames[i]);
  return items.map(x=>x.box);
 }
-root.PerdeMotion={gray,displacement,advance,replay};
+root.PerdeMotion={gray,displacement,difference,advance,replay};
 if(typeof module!=='undefined')module.exports=root.PerdeMotion;
 })(globalThis);

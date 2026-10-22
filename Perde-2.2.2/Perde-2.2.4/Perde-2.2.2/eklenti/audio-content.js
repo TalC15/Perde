@@ -5,6 +5,9 @@
   let settings=PerdeSettings.normalize(),current=null,mode='idle',jobVideo=null,jobElement=null,epoch=0,pollAt=0,busy=false,syncBusy=false,blocked=false,vocalMuted=false;
   let heartbeatAt=0,heartbeatBusy=false,progressValue=null,checkedVideo=null,checking=false,available=false,suppressedVideo=null,resumeSaved=false,settingsReady=false,navigating=false;
   let serviceReady=null,failedStart=false,lastUseSaved=false;
+  // partial: the vocal plays while the rest is still being separated; waiting:
+  // the video was paused by us because it caught up with the separated part.
+  let partial=false,waiting=false;
   const clientId=crypto.randomUUID();
   const muteStates=new Map();
   const rpc=async message=>{const r=await chrome.runtime.sendMessage({...message,clientId});if(!r?.ok){const error=Error(r?.error||'Ses servisi yanıt vermedi.');error.reload=r?.reload;throw error;}return r;};
@@ -54,14 +57,14 @@
     if(text)$('status').textContent=text;
     language.textContent=audioSelection==='turkish'?'Türkçe ses kullanılıyor.':audioSelection==='fallback'?'Türkçe ses parçasına ulaşılamadı; mevcut ses kullanılıyor.':'Türkçe ses varsa otomatik seçilir.';
     host.hidden=!settings.vocalEnabled||!PerdeSettings.videoId(location.href);
-    $('help').textContent=mode==='ready'?'Sarma, hız ve ses düzeyi video ile birlikte değişir.':`Yeni kayıtlar için süre sınırı ${settings.maxMinutes} dakika. Ses bilgisayarında hazırlanır; şarkı sözleri vokalde kalabilir.`;
+    $('help').textContent=mode==='ready'&&partial?'Kalan kısım sen izlerken hazırlanır; video hazırlanan yere yetişirse kısa süre bekler.':mode==='ready'?'Sarma, hız ve ses düzeyi video ile birlikte değişir.':`Yeni kayıtlar için süre sınırı ${settings.maxMinutes} dakika. Ses bilgisayarında hazırlanır; şarkı sözleri vokalde kalabilir.`;
     host.setAttribute('data-state',mode);
-    $('summary-state').textContent=checking?'Kontrol':mode==='ready'?(current?.paused?'Duraklatıldı':'Etkin'):mode==='preparing'?(Number.isFinite(progressValue)?`%${Math.round(progressValue)}`:'Hazırlanıyor'):mode==='error'?'Tekrar dene':available?'Kayıtlı':'Müziği ayır';
+    $('summary-state').textContent=checking?'Kontrol':mode==='ready'&&(waiting||partial&&current?.paused)&&Number.isFinite(progressValue)?`%${Math.round(progressValue)}`:mode==='ready'?(current?.paused?'Duraklatıldı':'Etkin'):mode==='preparing'?(Number.isFinite(progressValue)?`%${Math.round(progressValue)}`:'Hazırlanıyor'):mode==='error'?'Tekrar dene':available?'Kayıtlı':'Müziği ayır';
     $('start').hidden=mode!=='idle'||checking||checkedVideo!==PerdeSettings.videoId(location.href);$('start').textContent=available?'Kayıtlı vokali kullan':'Vokal oluştur';$('play').hidden=mode!=='ready';$('sound').hidden=mode!=='ready';$('cancel').hidden=mode==='idle';
     $('cancel').disabled=busy;$('sound').textContent=vocalMuted?'Vokal sesini aç':'Vokal sesini kapat';
     retryButton.hidden=mode!=='error'||!retryAllowed;saveBox.disabled=busy;
     savedNote.textContent=cacheWarning||(saved?'Bu vokal tarayıcı kitaplığında kayıtlı.':saveBox.checked?'Hazırlanınca tarayıcıya kaydedilecek.':'Yeni vokal geçici tutulur. Varsa kayıtlı kopya kullanılır.');
-    const meter=$('progress');meter.hidden=mode!=='preparing';
+    const meter=$('progress');meter.hidden=mode!=='preparing'&&!(mode==='ready'&&partial);
     if(Number.isFinite(progressValue))meter.value=progressValue;else meter.removeAttribute('value');
   }
   function keepAlive(){
@@ -74,7 +77,7 @@
     if(saved)available=true;
     if(manual)suppressedVideo=PerdeSettings.videoId(location.href);
     failedStart=false;
-    jobElement?.pause();epoch++;mode='idle';jobVideo=null;jobElement=null;pollAt=0;heartbeatAt=0;progressValue=null;audioSelection=null;saved=false;cacheWarning=null;retryTransfer=false;statusFailures=0;retryAllowed=false;resumeSaved=false;
+    jobElement?.pause();epoch++;mode='idle';partial=false;waiting=false;jobVideo=null;jobElement=null;pollAt=0;heartbeatAt=0;progressValue=null;audioSelection=null;saved=false;cacheWarning=null;retryTransfer=false;statusFailures=0;retryAllowed=false;resumeSaved=false;
     // Stop separated audio before restoring the source's mute state.
     await rpc({type:'vocal-cancel'}).catch(()=>{});
     for(const video of muteStates.keys())if(!settings.muteAds||!ad()||video!==current)forceMute(video,false);
@@ -86,7 +89,17 @@
     try{
       const video=jobElement;
       const result=await rpc({type:'vocal-sync',time:video.currentTime,rate:video.playbackRate,volume:vocalMuted?0:video.volume,playing:!video.paused&&!video.ended&&!video.seeking&&!blocked&&!ad()&&video.readyState>=3});
-      if(version===epoch)musicControls?.warning(result.musicWarning);
+      if(version!==epoch)return;
+      musicControls?.warning(result.musicWarning);
+      partial=result.complete===false;
+      if(Number.isFinite(result.progress))progressValue=result.progress;
+      // The video waits at the end of the separated part and continues once
+      // enough is ready, so the vocal never falls silent mid-scene.
+      const ahead=partial&&Number.isFinite(result.availableUntil)?result.availableUntil-video.currentTime:Infinity;
+      if(ahead<1.5&&!video.paused&&!video.ended){waiting=true;video.pause();}
+      else if(waiting&&(ahead>=10||!partial)){waiting=false;video.play().catch(()=>{});}
+      if(waiting)render(`Vokalin bu kısmı hazırlanıyor${Number.isFinite(progressValue)?` · %${Math.round(progressValue)}`:''}. Video birkaç saniye içinde kendiliğinden devam eder.`);
+      else if(partial&&!video.paused)render(`Vokal oynatılıyor; kalan kısım hazırlanıyor${Number.isFinite(progressValue)?` · %${Math.round(progressValue)}`:''}.`);
     }catch(error){if(version===epoch){if(error.reload){jobElement.pause();mode='preparing';pollAt=0;render('Vokal yeniden yükleniyor…');}else fail(error);}}
     finally{syncBusy=false;}
   }
@@ -124,7 +137,7 @@
     catch(error){if(version===epoch)cacheWarning=error.message;}
     finally{busy=false;render();}
   };
-  $('play').onclick=async()=>{try{if(jobElement.paused)await jobElement.play();else jobElement.pause();await synchronize();}catch(error){fail(error);}};
+  $('play').onclick=async()=>{try{if(jobElement.paused&&!waiting)await jobElement.play();else{waiting=false;jobElement.pause();}await synchronize();}catch(error){fail(error);}};
   $('sound').onclick=()=>{vocalMuted=!vocalMuted;render();synchronize();};
   function positionPanel(video){
     const target=document.fullscreenElement?.tagName!=='VIDEO'&&document.fullscreenElement||document.documentElement;
@@ -182,18 +195,18 @@
         retryTransfer=false;statusFailures=0;saved=result.saved===true;cacheWarning=result.cacheWarning||null;
         if(result.audioSelection==='turkish'||result.audioSelection==='fallback')audioSelection=result.audioSelection;
         if(result.state==='ready'){
-          mode='ready';available=saved||available;
-          render(result.cached?'Kayıtlı vokal hazır; yeniden ses ayırma yapılmadı.':'Vokal hazır. Oynat düğmesine basarak devam et.');
+          mode='ready';available=saved||available;partial=result.complete===false;
+          render(result.cached?'Kayıtlı vokal hazır; yeniden ses ayırma yapılmadı.':partial?'Vokalin ilk bölümü hazır. Oynat’a bas; kalan kısım sen izlerken hazırlanır.':'Vokal hazır. Oynat düğmesine basarak devam et.');
           if(resumeSaved){resumeSaved=false;try{await jobElement.play();await synchronize();}catch{render('Kayıtlı vokal hazır. Devam etmek için Vokal ile oynat’a bas.');}}
         }
         else if(result.state==='error'||result.state==='transfer-error'){retryAllowed=result.state!=='error';fail(Error(result.error||'Ses ayrılamadı.'));}
         else{
           progressValue=Number.isFinite(result.progress)?result.progress:null;
           const percent=progressValue===null?'':` · %${Math.round(progressValue)}`;
-          const remaining=result.state==='separating'&&result.remainingSeconds>0?` Yaklaşık ${Math.max(1,Math.ceil(result.remainingSeconds/60))} dakika kaldı.`:'';
+          const remaining=result.state==='separating'&&result.remainingSeconds>0?` Yaklaşık ${Math.max(1,Math.ceil(result.remainingSeconds/60))} dakika kaldı.`+(result.device==='gpu'?' Ekran kartı kullanılıyor.':''):'';
           render((result.state==='separating'?'Müzik ayrılıyor':result.state==='encoding'?'Vokal oynatmaya hazırlanıyor':result.state==='transferring'?'Hazır vokal tarayıcıya aktarılıyor':'Ses indiriliyor')+percent+'.'+remaining+' Video duraklatıldı.');
         }
-      }catch(error){if(version===epoch){if(++statusFailures<4)render('Bağlantı yeniden deneniyor; mevcut ses ayırma işlemi korunuyor…');else fail(error);}}finally{busy=false;}
+      }catch(error){if(version===epoch){if(++statusFailures<8)render('Bağlantı yeniden deneniyor; mevcut ses ayırma işlemi korunuyor…');else fail(error);}}finally{busy=false;}
     }
   }
   let previousAd=false;
