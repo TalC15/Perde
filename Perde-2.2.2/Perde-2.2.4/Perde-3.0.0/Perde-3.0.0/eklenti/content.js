@@ -5,7 +5,7 @@
   let settings={...DEFAULTS},generation=0,siteDisabled=false;
   const records=new Map(),parents=new WeakMap();const diagnostics=[];
   const intersections=new IntersectionObserver(entries=>{for(const entry of entries){const record=records.get(entry.target);if(record){record.inView=entry.isIntersecting;if(!record.inView)record.layer.style.display='none';}}},{rootMargin:'160px'});
-  const status={version:'3.1.1',model:'hazırlanıyor',frames:0,images:0,people:0,covered:0,visible:0,ms:0,genderReady:false,error:null};
+  const status={version:'3.1.2',model:'hazırlanıyor',frames:0,images:0,people:0,covered:0,visible:0,ms:0,genderReady:false,error:null};
   let inferenceBusy=false,scheduled=false;
   const {Tracker,contentRect,expanded,settle}=PerdeTracking;
   // Blob masks are painted from a tiny copy of the region: no detail survives.
@@ -254,7 +254,7 @@
       // Settled people need no new gender look: women stay covered, and a fresh
       // male decision is checked again after a few seconds.
       const skip=settings.target==='women'?record.tracker.tracks.filter(t=>t.gender?.obs.length>=2&&(t.gender.mean<.3||t.gender.male&&now-t.gender.at<2500)).map(t=>t.box):[];
-      const result=await rpc({type:'detect',image:data,confidence:settings.confidence,detail:settings.detail,frame:settings.frame,genderLimit:settings.genderLimit,genders:settings.target==='women',skip});
+      const result=await rpc({type:'detect',image:data,confidence:settings.confidence,detail:settings.detail,frame:settings.frame,genderLimit:settings.genderLimit,genders:settings.target==='women',threshold:settings.maleThreshold,skip});
       if(epoch!==record.epoch||version!==generation||!element.isConnected||source!==(type==='video'?element.currentSrc:(element.currentSrc||element.src)))return;
       const timestamp=performance.now();
       const evidence=Array.isArray(result.evidence)?result.evidence:[];

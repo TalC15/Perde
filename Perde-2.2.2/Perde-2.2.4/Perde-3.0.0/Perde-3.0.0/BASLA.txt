@@ -1,4 +1,8 @@
-PERDE 3.1.1 — BAŞLANGIÇ
+PERDE 3.1.2 — BAŞLANGIÇ
+
+3.1.2: Cinsiyeti belirlenemeyen ama erkeğe yakın kişide saç uzunluğuna bakılır: kısa saç
+erkek yönünde sayılır, uzun saç örtülü bırakır. Başörtüsü/şapka ve arkası dönük kişiler
+örtülü kalır. Çok emin tek bakış erkeği hemen açar. Eklentiyi Yenile, YouTube sekmesini yenile.
 
 3.1.1: Kadınlar modunda erkeklerin örtülü kalması düzeltildi. Erkekler artık birkaç
 analiz içinde açılır; öndeki erkeğin başı arkadaki kişinin örtüsüyle kapanmaz.

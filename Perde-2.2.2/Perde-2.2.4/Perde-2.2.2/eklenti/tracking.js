@@ -16,8 +16,8 @@
     const px=Math.max(.012,b[2]*padding),py=Math.max(.015,b[3]*padding);
     return clip([b[0]-px,b[1]-py,b[2]+px*2,b[3]+py*2]);
   }
-  // Per-track gender vote. A person is left visible only after two or more
-  // confident "male" observations; one clear female observation covers again.
+  // Per-track gender vote. A person is left visible after two confident "male"
+  // observations, or one very sure and clear one; one female look covers again.
   const WINDOW=6;
   function vote(state,evidence,threshold=.8,now=0) {
     const previous=state||{obs:[],male:false,mean:null,at:0};
@@ -26,7 +26,8 @@
     const weight=obs.reduce((s,o)=>s+o.w,0),mean=obs.reduce((s,o)=>s+o.p*o.w,0)/(weight||1),last=obs.at(-1);
     let male=previous.male;
     if(male)male=!(mean<threshold-.15||last.p<.35&&last.w>=.4);
-    else male=obs.length>=2&&weight>=1&&mean>=threshold&&Math.min(...obs.map(o=>o.p))>=threshold-.25;
+    // A single very confident, clear look is enough; otherwise two agreeing looks.
+    else male=obs.length>=2&&weight>=1&&mean>=threshold&&Math.min(...obs.map(o=>o.p))>=threshold-.25||obs.length===1&&last.p>=Math.max(.95,threshold+.1)&&last.w>=.9;
     return {obs,male,mean,at:now};
   }
   // Displayed masks never trail the person: edges grow at once and shrink smoothly.

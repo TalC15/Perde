@@ -102,6 +102,22 @@ function combine(people,faces){
   });
   return {boxes,evidence};
 }
-root.PerdeFaces={INPUT,ROW,ANCHORS,anchors,tiles,decode,iou,suppress,cropBox,inside,quality,combine};
+// mask: hair confidence [size*size] of a square head crop; face: [x,y,w,h] in
+// crop pixels. Hair that ends clearly above the chin is short; hair well below
+// it is long. No hair on top of the head (headscarf, hat, bald) decides nothing.
+function hairLength(mask,size,face){
+  let total=0,top=-1,bottom=-1;
+  for(let y=0;y<size;y++){
+    let n=0;for(let x=0;x<size;x++)if(mask[y*size+x]>.5)n++;
+    total+=n;if(n>size*.04){if(top<0)top=y;bottom=y;}
+  }
+  const share=total/(size*size);
+  if(top<0||share<.02||top>=face[1])return 'none';
+  const below=(bottom-(face[1]+face[3]))/face[3];
+  if(below<=-.3)return 'short';
+  if(below>=.5&&share>=.05)return 'long';
+  return 'none';
+}
+root.PerdeFaces={INPUT,ROW,ANCHORS,anchors,tiles,decode,iou,suppress,cropBox,inside,quality,combine,hairLength};
 if(typeof module!=='undefined')module.exports=root.PerdeFaces;
 })(globalThis);

@@ -105,11 +105,29 @@ async function detect(message){
       if(scale>1.05){full=tf.tidy(()=>tf.expandDims(tf.cast(tf.browser.fromPixels(image),'float32')));genders=await classify(full,W,H,faces,limit,skip,scale);}
       else genders=await classify(floats,W,H,faces,limit,skip);
     }
+    // Undecided faces that lean male: clearly short hair counts as a male look,
+    // long hair keeps them covered. Each look still has to agree with the next.
+    if(message.genders!==false&&globalThis.PerdeHair){
+      const threshold=Number.isFinite(message.threshold)?Math.min(.95,Math.max(.5,message.threshold)):.8;
+      // One face per analysis, the largest: the next look covers the next person.
+      const undecided=genders.map((g,i)=>g&&g.weight>=.5&&g.male>=.5&&g.male<threshold?i:-1).filter(i=>i>=0).sort((a,b)=>faces[b].box[3]-faces[a].box[3]).slice(0,1);
+      if(undecided.length&&!PerdeHair.ready())PerdeHair.load().catch(()=>{});
+      else if(undecided.length){
+        const scale=image.naturalWidth/W;
+        for(const i of undecided){
+          try{
+            const hair=PerdeHair.judge(image,faces[i].box.map(v=>v*scale));genders[i].hair=hair;
+            if(hair==='short')genders[i].male=Math.max(genders[i].male,Math.min(.95,threshold+.05));
+            else if(hair==='long')genders[i].male=Math.min(genders[i].male,.45);
+          }catch{/* No hair decision for this look. */}
+        }
+      }
+    }
     timing.gender=Math.round(performance.now()-mark);
     const combined=PerdeFaces.combine(people,faces.map((face,i)=>({box:[face.box[0]/W,face.box[1]/H,face.box[2]/W,face.box[3]/H],score:face.score,male:genders[i]?.male??null,weight:genders[i]?.weight||0})));
     if(!combined.boxes.every(b=>b.every(Number.isFinite)))throw Error('Model geçersiz koordinat üretti');
     // debug: per-face results for the test page and offline evaluation.
-    const faceDetails=message.debug===true?faces.map((face,i)=>({box:[face.box[0]/W,face.box[1]/H,face.box[2]/W,face.box[3]/H],score:face.score,male:genders[i]?.male??null,weight:genders[i]?.weight||0})):undefined;
+    const faceDetails=message.debug===true?faces.map((face,i)=>({box:[face.box[0]/W,face.box[1]/H,face.box[2]/W,face.box[3]/H],score:face.score,male:genders[i]?.male??null,weight:genders[i]?.weight||0,hair:genders[i]?.hair||null})):undefined;
     return {ok:true,boxes:combined.boxes,evidence:combined.evidence,faces:faces.length,faceDetails,genderReady:!!genderModel,timing,ms:Math.round(performance.now()-begin),backend:tf.getBackend(),warning:engineStatus.warning};
   }finally{pixels.dispose();floats?.dispose();full?.dispose();}
 }

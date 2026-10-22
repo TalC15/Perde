@@ -1,0 +1,7 @@
+vendor/mediapipe/ (@mediapipe/tasks-vision 1.1.0: vision_bundle.mjs and the SIMD WebAssembly runtime)
+and hair/hair_segmenter.tflite (MediaPipe hair segmentation model) are used unmodified.
+
+Copyright Google LLC. Licensed under the Apache License, Version 2.0:
+https://www.apache.org/licenses/LICENSE-2.0
+Sources: https://www.npmjs.com/package/@mediapipe/tasks-vision
+         https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter

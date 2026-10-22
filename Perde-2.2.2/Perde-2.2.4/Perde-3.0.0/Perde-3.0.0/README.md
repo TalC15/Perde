@@ -1,6 +1,16 @@
-# Perde 3.1.1 — çalışma notu
+# Perde 3.1.2 — çalışma notu
 
 HAKKINDA.txt değiştirilmedi. İnsan, yüz ve cinsiyet algılama yereldir. Varsayılan olarak kadınlar ve cinsiyeti belirlenemeyen kişiler örtülür; panelden **Herkes** seçilirse algılanan bütün insanlar örtülür.
+
+## 3.1.2 · kararsız kalınca saç uzunluğu, daha hızlı karar
+
+- **Saç kuralı:** Yüzü görünen ama cinsiyeti belirlenemeyen ve erkeğe yakın duran (model 0,50–0,80 arası) kişide saç cihazda ayrı bir modelle (MediaPipe saç bölütleme) ölçülür. Saç başın üstünde görünüyor ve çenenin belirgin şekilde üstünde bitiyorsa **kısa saç** sayılır ve o bakış erkek bakışı olur; omuzlara iniyorsa **uzun saç** sayılır ve kişi örtülü kalır. Açılmak için yine iki bakışın uyuşması gerekir.
+- **Bilerek uygulanmayan yerler:** Kadın olarak tanınan kişiye saç kuralı uygulanmaz (kısa saçlı kadınlar örtülü kalır). Başörtüsü, şapka veya kel baş “saç görünmüyor” sayılır ve kişi örtülü kalır. Arkası dönük, yüzü görünmeyen kişilerde saç uzunluğu kadınla erkeği güvenilir ayıramadığı için (testte arkadan kısa saçlı erkek ile uzun saçlı kadın aynı göründü) bu kişiler örtülü kalır.
+- **Daha hızlı:** Çok emin ve net tek bir bakış (≥0,95, büyük yüz) erkeği hemen açar; diğer durumlarda iki bakış gerekir. Saç incelemesi analiz başına en büyük tek kişiye yapılır ve ekran kartında birkaç milisaniye sürer.
+- Gerçek kliplerde saç kuralının “kısa saç” dediği 13 yüzün hepsi erkekti; kadın ağırlıklı klipte hiçbir kadın açılmadı, başörtülü kadın örtülü kaldı. Aynı koşullarda 3.1.1 ile karşılaştırıldığında analiz süresi ve kare kaybı değişmedi, açık erkek görülen ölçümler arttı (60→63, 54→57).
+- Eklenti ~14 MB büyüdü (MediaPipe çalışma zamanı). Güvenlik politikasına yalnızca WebAssembly derlemesine izin veren `'wasm-unsafe-eval'` eklendi; JavaScript `eval` izni yoktur. Lisans: `eklenti/vendor/MEDIAPIPE-LICENSE.txt` (Apache-2.0).
+
+**Güncelleme:** Eklentiyi **Yenile** (3.1.2 görünmeli) ve YouTube sekmesini yenile. Ses servisinde değişiklik yok.
 
 ## 3.1.1 · erkekler artık açılıyor
 

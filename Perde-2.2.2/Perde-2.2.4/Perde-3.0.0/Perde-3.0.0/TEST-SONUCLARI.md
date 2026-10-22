@@ -1,4 +1,11 @@
-# Perde doğrulama notları — 22 Ekim 2026 (3.1.1)
+# Perde doğrulama notları — 22 Ekim 2026 (3.1.2)
+
+## 3.1.2 · saç uzunluğu ve tek bakış kararı
+
+- **84/84 JavaScript testi geçti.** Yeni: saç uzunluğu ölçüsü (kulak hizası kısa, omuz uzun, çene hizası kararsız; başörtüsü/şapka, alında başlayan saç ve birkaç piksel karar vermez) ve tek bakış kuralı (≥0,95 ve net yüz; küçük yüzde ve yüksek profilde yetmez).
+- **Saç modeli önce ayrı sayfada ölçüldü** (281 kişi, 3 klip): yüz başına ~5 ms (ekran kartı). Model kesin erkek dediklerinde saç çenenin ortanca 0,76 yüz boyu üstünde, kesin kadınlarda 0,43 altında bitti; ama kısa saçlı ve saçı toplu kadınlar da “kısa” çıktı ve arkadan bakışta kısa saçlı erkekle uzun saçlı kadın ayrılamadı. Bu yüzden kural yalnızca kararsız ve erkeğe yakın yüzlere uygulandı.
+- **Eklentinin içinde** (`frames.cjs`): “kısa” denen 13 yüzün hepsi erkek (kırpımlar elle incelendi); “uzun” denen 7 yüzün 3’ü kadın (biri başörtülü), 4’ü bulanık erkek; ikisi de örtülü kalma yönünde. Kadın ağırlıklı klipte saç kuralına giren yüz olmadı, 0,8’i geçen yüz yok.
+- **İşlemci ile ekran kartı:** Saç modeli işlemcide (WASM) analiz başına ~0,3 sn ekledi; ekran kartına alındı. Aynı koşullarda 3.1.1 ile sırayla ölçüldü: analiz medyanı 222/222 ms, kare kaybı 12/12 (haber) ve 132/146 (50 fps talk show, bilgisayarda başka bir tarayıcı açıkken), açık erkek görülen ölçümler 54→57 ve 60→63. GPU payını 0,15’ten 0,20’ye çıkarmak belirgin fayda göstermediği için değiştirilmedi.
 
 ## 3.1.1 · kadınlar modunda erkeklerin açılması
 

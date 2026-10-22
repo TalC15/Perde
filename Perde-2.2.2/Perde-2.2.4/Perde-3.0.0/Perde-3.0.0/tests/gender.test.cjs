@@ -62,8 +62,11 @@ test('Each face joins the one person whose head it fits; a neighbour keeps its o
 });
 
 test('A person is shown only after repeated confident male observations',()=>{
-  let state=tracking.vote(null,{male:.99,weight:1},.85);
-  assert.equal(state.male,false,'one look is never enough');
+  let state=tracking.vote(null,{male:.92,weight:1},.85);
+  assert.equal(state.male,false,'one ordinary look is not enough');
+  assert.equal(tracking.vote(null,{male:.97,weight:1},.85).male,true,'one very sure, clear look is enough');
+  assert.equal(tracking.vote(null,{male:.99,weight:.6},.85).male,false,'but not from a small face');
+  assert.equal(tracking.vote(null,{male:.97,weight:1},.88).male,false,'the strict profile asks for more');
   state=tracking.vote(state,{male:.97,weight:1},.85);assert.equal(state.male,true);
   state=tracking.vote(state,{male:.3,weight:.5},.85);assert.equal(state.male,false,'a clear female look covers again');
   let weak=null;for(let i=0;i<3;i++)weak=tracking.vote(weak,{male:.99,weight:.2},.85);
@@ -113,4 +116,14 @@ test('A covered box behind a shown man gets a hole only at his head',()=>{
   const tracker=new tracking.Tracker();
   tracker.update([box],0,[{male:.97,weight:1,face}]);tracker.update([[.42,.3,.2,.6]],500,[null]);
   const item=tracker.sample(510)[0];assert.ok(item.face);assert.deepEqual(item.face,tracker.tracks[0].face);
+});
+test('Hair length is read only when hair is visible on top of the head',()=>{
+  const S=100,face=[40,30,20,24];
+  const mask=(top,bottom,left=30,right=70)=>{const m=new Float32Array(S*S);for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++)m[y*S+x]=.9;return m;};
+  assert.equal(faces.hairLength(mask(10,40),S,face),'short','ends at the ears');
+  assert.equal(faces.hairLength(mask(10,90),S,face),'long','reaches the shoulders');
+  assert.equal(faces.hairLength(mask(10,55),S,face),'none','about chin length decides nothing');
+  assert.equal(faces.hairLength(new Float32Array(S*S),S,face),'none','headscarf or hat: no visible hair');
+  assert.equal(faces.hairLength(mask(35,90),S,face),'none','hair only below the forehead is not a head of hair');
+  assert.equal(faces.hairLength(mask(10,20,45,55),S,face),'none','a few pixels are not enough');
 });

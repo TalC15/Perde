@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Perde — Yerel Görüntü ve Ses Koruması",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "minimum_chrome_version": "120",
   "description": "Kadınları ve belirlenemeyen kişileri cihazında örten görüntü koruması, isteğe bağlı site koruması, YouTube reklam susturma ve yerel vokal ayırma.",
   "permissions": [
@@ -55,7 +55,7 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },
   "optional_host_permissions": [
     "https://*/*",
