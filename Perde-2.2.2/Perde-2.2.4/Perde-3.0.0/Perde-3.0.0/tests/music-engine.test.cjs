@@ -33,6 +33,7 @@ test('Vocal end cannot restart either audio when the video timeline extends beyo
   const syncs=[];let plays=0;
   const sample={duration:2,paused:true,ended:true,currentTime:2,pause(){this.paused=true;},async play(){plays++;this.paused=false;}};
   const context=vm.createContext({sample,PerdeMusicPlayer:{sync:s=>syncs.push(s)},chrome:{runtime:{onMessage:{addListener(){}}}},setInterval(){},performance:{now:()=>100}});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../eklenti/vocal-stream.js'),'utf8'),context);
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../eklenti/audio-engine.js'),'utf8'),context);
   await vm.runInContext("vocalAudio=sample;audioCommand({type:'audio-sync',time:2.1,rate:1,volume:1,playing:true,musicId:'a'.repeat(64)})",context);
   assert.equal(plays,0);assert.equal(syncs[0].playing,false);

@@ -1,13 +1,24 @@
-PERDE 3.0.0 — BAŞLANGIÇ
+PERDE 3.1.0 — BAŞLANGIÇ
 
-Önemli: Yalnızca kadınları tespit etme yoktur. Görsel maskeleme bütün insanları hedefler.
+Varsayılan: kadınlar ve cinsiyeti belirlenemeyen kişiler örtülür. Panel > Koruma > Kimler örtülsün
+bölümünden Herkes seçilebilir. Örtü görünümü: Yumuşak renk veya Düz koyu.
+Cinsiyet algılama cihazdadır ve garanti değildir; belirsiz kalan kişi örtülü kalır.
+
+3.1 VOKAL YENİLİKLERİ
+İşlem sırasında çıkan "Ses işlenemedi" hatası giderildi; hata mesajları artık nedenini söyler.
+Vokal ekran kartıyla (DirectML) yaklaşık 2,5 kat hızlı ayrılır; 40 dakikalık video ~15 dakika.
+BASLAT.cmd ilk açılışta gerekli bileşeni ve 67 MB'lık modeli bir kez indirir.
+Ekran kartı kullanılamazsa ses eskisi gibi işlemcide ayrılır.
+Tamamını beklemeye gerek yok: ilk bölüm hazır olunca Oynat'a bas, kalanı sen izlerken hazırlanır.
+Video hazırlanan yere yetişirse kısa süre bekler ve kendiliğinden devam eder.
+Güncellerken eklentiyi Yenile, YouTube sekmesini yenile, servisi BASLAT.cmd ile yeniden aç.
 
 1. chrome://extensions > Geliştirici modu > Paketlenmemiş öğe yükle.
 2. Bu paketin eklenti klasörünü seç. Eski kurulum zaten aynı klasördeyse Yenile'ye bas.
 3. YouTube sekmelerini yenile. Eklenti panelinden Model testi yap.
 4. Yeni vokal hazırlamak için vocal-service/BASLAT.cmd dosyasını aç; eklentinin kimliğini gir.
 5. Gösterilen anahtarı eklenti paneli > Vokaller > Yeni vokal hazırla bölümüne yapıştır.
-Servisi kapatıp yeniden açtıysan yeni anahtarı bağla. 3.0 güncellemesi ses servisini yeniden kurmayı gerektirmez.
+Servisi kapatıp yeniden açtıysan yeni anahtarı bağla.
 6. Kayıt yoksa YouTube'daki Perde · Vokal kutusundan Vokal oluştur'u seç.
 Vokali tarayıcıda sakla kutusu varsayılan olarak açıktır; seçimin sonraki videolar için hatırlanır.
 Tamamlanan kayıtlar eklenti panelindeki Kaydedilmiş vokaller bölümünde görünür.

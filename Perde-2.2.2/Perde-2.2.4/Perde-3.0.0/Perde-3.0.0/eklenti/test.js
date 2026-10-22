@@ -1,4 +1,6 @@
 'use strict';
+// Show the per-person decision outlines on this page only.
+document.documentElement.dataset.perdeDebug='true';
 let oldUrl=null;
 document.getElementById('file').onchange=event=>{
   const file=event.target.files[0];if(!file)return;

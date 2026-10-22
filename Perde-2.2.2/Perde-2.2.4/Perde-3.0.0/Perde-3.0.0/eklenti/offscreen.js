@@ -1,7 +1,33 @@
 'use strict';
-let loading=null,personModel=null,faceModel=null;
+let loading=null,extras=null,personModel=null,faceModel=null,genderModel=null;
 let queue=Promise.resolve();
-let engineStatus={ready:false,backend:null,error:null,faceReady:false};
+let engineStatus={ready:false,backend:null,error:null,faceReady:false,genderReady:false};
+const GENDER_BATCH=4,GENDER_SIZE=224,GENDER_OUTPUT='gender_pred/Sigmoid:0';
+async function warmUp(face,gender){
+  // Compile shaders before these models touch a video frame: a 16:9 frame with
+  // one face pass and with the small-people tiles, and every gender batch size.
+  const canvas=document.createElement('canvas');canvas.width=800;canvas.height=450;
+  await personModel.detect(canvas,1,.9);
+  const frame=tf.zeros([1,450,800,3]);
+  try{if(face){await findFaces(frame,800,450,[],face);await findFaces(frame,800,450,null,face);}}finally{frame.dispose();}
+  tf.tidy(()=>{for(let n=1;n<=GENDER_BATCH;n++)gender?.execute(tf.zeros([n,GENDER_SIZE,GENDER_SIZE,3]),GENDER_OUTPUT);});
+}
+// Face and gender models load after the person model: until they are ready
+// every detected person is covered, so protection starts without waiting.
+function loadExtras(){
+  if(extras)return extras;
+  extras=(async()=>{
+    const warnings=[];let face=null,gender=null;
+    try{face=await tf.loadGraphModel(chrome.runtime.getURL('face/blazeface-back.json'));}
+    catch(error){warnings.push('Yüz modeli yüklenemedi: '+error.message);}
+    try{gender=face?await tf.loadGraphModel(chrome.runtime.getURL('gender/faceres.json')):null;}
+    catch(error){warnings.push('Cinsiyet modeli yüklenemedi; algılanan herkes örtülecek: '+error.message);}
+    await warmUp(face,gender).catch(()=>{});
+    faceModel=face;genderModel=gender;
+    engineStatus={...engineStatus,faceReady:!!face,genderReady:!!gender,warning:warnings.join(' ')||null};
+  })();
+  return extras;
+}
 async function loadModels(){
   if(loading)return loading;
   loading=(async()=>{
@@ -9,39 +35,74 @@ async function loadModels(){
     catch{await tf.setBackend('cpu');}
     await tf.ready();
     personModel=await cocoSsd.load({base:'lite_mobilenet_v2',modelUrl:chrome.runtime.getURL('model/model.json')});
-    let faceWarning=null;
-    try{faceModel=await blazeface.load({modelUrl:chrome.runtime.getURL('face/model.json'),maxFaces:30,scoreThreshold:.7});}
-    catch(error){faceWarning='Ek yüz modeli yüklenemedi: '+error.message;}
-    engineStatus={ready:true,backend:tf.getBackend(),error:null,faceReady:!!faceModel,warning:faceWarning};
-    return {personModel,faceModel};
+    engineStatus={...engineStatus,ready:true,backend:tf.getBackend(),error:null};
+    void loadExtras();
+    return personModel;
   })().catch(error=>{loading=null;personModel?.dispose();personModel=null;engineStatus.error=error.message;throw error;});
   return loading;
 }
 function readImage(url){
   return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('Görüntü çözümlenemedi'));image.src=url;});
 }
+async function findFaces(batch,width,height,people,model=faceModel){
+  // batch: float32 [1,H,W,3] frame shared with the gender classifier. The
+  // whole-frame pass finds large faces; tiles run only when people are small.
+  // All tiles are queued on the GPU and read back once.
+  const list=PerdeFaces.tiles(width,height,people);
+  const rows=tf.tidy(()=>tf.concat(list.map(tile=>{
+    const box=[[tile.y/height,tile.x/width,(tile.y+tile.size)/height,(tile.x+tile.size)/width]];
+    const input=tf.sub(tf.div(tf.image.cropAndResize(batch,box,[0],[PerdeFaces.INPUT,PerdeFaces.INPUT]),127.5),1);
+    const byShape={};for(const t of model.execute(input))byShape[t.shape.slice(1).join('x')]=t;
+    return tf.concat([tf.concat([byShape['512x1'],byShape['512x16']],2),tf.concat([byShape['384x1'],byShape['384x16']],2)],1);
+  }),0));
+  const data=await rows.data();rows.dispose();
+  const size=PerdeFaces.ANCHORS.length*PerdeFaces.ROW,found=[];
+  list.forEach((tile,i)=>found.push(...PerdeFaces.decode(data.subarray(i*size,(i+1)*size),tile,.6)));
+  return PerdeFaces.suppress(found);
+}
+async function classify(batch,width,height,faces,limit,skip){
+  // Probability that each face is male; null when the face is too small/uncertain
+  // or belongs to a person already settled as female (cost grows per face).
+  const result=faces.map(()=>null);
+  const order=faces.map((face,index)=>({index,weight:PerdeFaces.quality(face),size:face.box[2]*face.box[3]}))
+    .filter(x=>x.weight>0&&!PerdeFaces.inside(faces[x.index].box,width,height,skip)).sort((a,b)=>b.size-a.size).slice(0,limit);
+  if(!genderModel||!order.length)return result;
+  for(let i=0;i<order.length;i+=GENDER_BATCH){
+    const group=order.slice(i,i+GENDER_BATCH);
+    const boxes=group.map(item=>PerdeFaces.cropBox(faces[item.index].box,width,height));
+    const output=tf.tidy(()=>genderModel.execute(tf.image.cropAndResize(batch,boxes,boxes.map(()=>0),[GENDER_SIZE,GENDER_SIZE]),GENDER_OUTPUT));
+    const values=await output.data();output.dispose();
+    group.forEach((item,k)=>{const p=values[k];if(Number.isFinite(p))result[item.index]={male:Math.min(1,Math.max(0,p)),weight:item.weight};});
+  }
+  return result;
+}
 async function detect(message){
   if(typeof message.image!=='string'||!/^data:image\/(jpeg|png|webp|gif|avif);base64,/.test(message.image)||message.image.length>3500000)throw Error('Geçersiz görüntü isteği');
   await loadModels();
   const image=await readImage(message.image);
   const max=Math.max(image.naturalWidth,image.naturalHeight);
-  const factor=Math.min(1,(message.detail==='high'?960:640)/max);
+  const frame=[640,800,960].includes(message.frame)?message.frame:message.detail==='high'?960:640;
+  const factor=Math.min(1,frame/max);
   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.naturalWidth*factor));canvas.height=Math.max(1,Math.round(image.naturalHeight*factor));
   canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
-  const begin=performance.now();
-  const predictions=await personModel.detect(canvas,100,message.confidence===.4?.4:message.confidence===.15?.15:.25);
-  const boxes=predictions.filter(x=>x.class==='person').map(p=>p.bbox.map((v,i)=>v/(i%2?canvas.height:canvas.width)));
-  const faces=faceModel?await faceModel.estimateFaces(canvas,false,false,true):[];
-  for(const f of faces){
-    const x=f.topLeft[0]/canvas.width,y=f.topLeft[1]/canvas.height;
-    const w=(f.bottomRight[0]-f.topLeft[0])/canvas.width,h=(f.bottomRight[1]-f.topLeft[1])/canvas.height;
-    const face=[x,y,w,h];
-    // Faces supplement close-up human detection; do not suppress a reliable full body box.
-    if(!boxes.some(b=>x+w/2>=b[0]&&x+w/2<=b[0]+b[2]&&y+h/2>=b[1]&&y+h/2<=b[1]+b[3]))
-      boxes.push([x-w*.35,y-h*.25,w*1.7,h*3.2]);
-  }
-  if(!boxes.every(b=>b.every(Number.isFinite)))throw Error('Model geçersiz koordinat üretti');
-  return {ok:true,boxes,faces:faces.length,ms:Math.round(performance.now()-begin),backend:tf.getBackend(),warning:engineStatus.warning};
+  const W=canvas.width,H=canvas.height,begin=performance.now();
+  const pixels=tf.browser.fromPixels(canvas);let floats=null;
+  try{
+    const predictions=await personModel.detect(pixels,100,message.confidence===.4?.4:message.confidence===.15?.15:.25);
+    const timing={person:Math.round(performance.now()-begin)};
+    const people=predictions.filter(x=>x.class==='person').map(p=>p.bbox.map((v,i)=>v/(i%2?H:W)));
+    floats=faceModel?tf.tidy(()=>tf.expandDims(tf.cast(pixels,'float32'))):null;
+    let mark=performance.now();
+    const faces=faceModel?await findFaces(floats,W,H,people):[];
+    timing.face=Math.round(performance.now()-mark);mark=performance.now();
+    const limit=Number.isInteger(message.genderLimit)?Math.max(0,Math.min(8,message.genderLimit)):3;
+    const skip=Array.isArray(message.skip)?message.skip.slice(0,30).filter(b=>Array.isArray(b)&&b.length===4&&b.every(Number.isFinite)):[];
+    const genders=message.genders===false?faces.map(()=>null):await classify(floats,W,H,faces,limit,skip);
+    timing.gender=Math.round(performance.now()-mark);
+    const combined=PerdeFaces.combine(people,faces.map((face,i)=>({box:[face.box[0]/W,face.box[1]/H,face.box[2]/W,face.box[3]/H],score:face.score,male:genders[i]?.male??null,weight:genders[i]?.weight||0})));
+    if(!combined.boxes.every(b=>b.every(Number.isFinite)))throw Error('Model geçersiz koordinat üretti');
+    return {ok:true,boxes:combined.boxes,evidence:combined.evidence,faces:faces.length,genderReady:!!genderModel,timing,ms:Math.round(performance.now()-begin),backend:tf.getBackend(),warning:engineStatus.warning};
+  }finally{pixels.dispose();floats?.dispose();}
 }
 chrome.runtime.onMessage.addListener((message,sender,respond)=>{
   if(sender.id!==chrome.runtime.id||sender.tab)return;
@@ -51,6 +112,6 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     task.then(respond,error=>respond({ok:false,error:error.message}));return true;
   }
   if(message.type==='engine-status'){
-    loadModels().then(()=>respond({ok:true,...engineStatus}),error=>respond({ok:false,...engineStatus,error:error.message}));return true;
+    loadModels().then(loadExtras).then(()=>respond({ok:true,...engineStatus}),error=>respond({ok:false,...engineStatus,error:error.message}));return true;
   }
 });

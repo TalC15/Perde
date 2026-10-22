@@ -1,6 +1,36 @@
-# Perde 3.0.0 — çalışma notu
+# Perde 3.1.0 — çalışma notu
 
-HAKKINDA.txt değiştirilmedi. İnsan ve yüz algılama yereldir. Algılanan bütün insan bölgeleri otomatik örtülür. Cinsiyete göre hedef seçimi bulunmaz.
+HAKKINDA.txt değiştirilmedi. İnsan, yüz ve cinsiyet algılama yereldir. Varsayılan olarak kadınlar ve cinsiyeti belirlenemeyen kişiler örtülür; panelden **Herkes** seçilirse algılanan bütün insanlar örtülür.
+
+## 3.1.0 · kadın odaklı örtü, hızlı vokal ve izlerken hazırlama
+
+**Görsel koruma**
+
+- **Kimler örtülsün: Kadınlar / Herkes** (Koruma sekmesi). Kadınlar modunda her kişinin yüzü cihazda bir cinsiyet modeline gösterilir. Erkek olduğu birkaç bakışta netleşen kişinin örtüsü yumuşakça kalkar; kadınlar, yüzü görünmeyenler ve belirsiz kalanlar örtülü kalır. Örnek 165 yüzlük sette doğruluk %98,8 idi ve dengeli eşikte hiçbir kadın erkek sanılmadı. Bu bir garanti değildir.
+- **Örtü görünümü:** **Yumuşak renk** örtülen bölgenin yalnızca ortalama renklerini gösterir (ayrıntı görünmez); **Düz koyu** tek renktir.
+- Analiz, ekran kartının yaklaşık en fazla %15’ini kullanacak hızda yapılır; aradaki karelerde maskeler hareket takibiyle kaydırılır. Testte video kare kaybı %10–14’ten %1–2’ye indi. Sahne değişiminde ve sarmada hemen yeni analiz yapılır.
+- Modeller ilk açılışta hazırlanır. Cinsiyet modeli hazır olana kadar algılanan herkes örtülür; panel bunu söyler. Modeller (`eklenti/face`, `eklenti/gender`) `@vladmandic/human-models` 3.0.4 paketindendir; lisansı `eklenti/vendor/HUMAN-MODELS-LICENSE.txt`.
+
+**Vokal: hata düzeltmeleri**
+
+- İşlem sürerken çıkan “Ses işlenemedi” hatasının ana nedeni giderildi: servis durum dosyasını okurken Windows (veya virüs tarayıcısı) dosyanın değiştirilmesini reddediyor ve iş düşüyordu. Artık yeniden deneniyor.
+- Hata mesajları nedeni söyler: YouTube doğrulaması/403, bağlantı, bellek, disk. İndirme bir kez daha denenir; uzun işlemde bilgisayar uykuya geçmez; servis kısa süre yanıt vermezse panel ~15 saniye bekler.
+
+**Vokal: ekran kartıyla hızlı ayırma**
+
+- Yeni motor **MDX-Net** (UVR-MDX-NET-Voc_FT, ONNX) DirectML ile Windows’taki ekran kartında çalışır. Bu bilgisayarda (AMD Radeon) gerçek zamanın yaklaşık 2,5–2,8 katı hızla ayırır: 40 dakikalık video yaklaşık 15 dakika. İşlemci boş kalır.
+- Gerçek bir şarkı kesitinde vokal ayrımı Demucs’tan daha temizdi (SDR 8,9 dB’ye karşı 8,1 dB).
+- Ekran kartı kullanılamıyorsa servis Demucs ile işlemcide çalışmaya devam eder (bu bilgisayarda işlemcide Demucs daha hızlıdır). Sürücü işlem sırasında hata verirse iş işlemcide sürer.
+- `BASLAT.cmd` gerekli bileşeni (`onnxruntime-directml`) kurar ve modeli bir kez indirir (67 MB, SHA-256 ile doğrulanır). Kurulamazsa uyarı gösterip Demucs ile açılır. Motoru elle seçmek için: `server.py --engine mdx|demucs|auto`.
+
+**Vokal: izlerken hazırlama**
+
+- Vokalin tamamı beklenmez. İlk ~20 saniye hazırlanınca **Oynat**’a basabilirsin; gerçek 3,5 dakikalık testte ilk vokal 34 saniyede çalmaya başladı (indirme dahil). Kalan kısım sen izlerken hazırlanır.
+- Video, hazırlanan kısma yetişirse kendiliğinden kısa süre durur ve en az 10 saniyelik vokal hazır olunca devam eder. Panel ilerlemeyi gösterir. Sarma, hız ve duraklatma bu sırada da çalışır.
+- Vokal ile video arasındaki fark testte ortanca 51 ms idi. MP3 kodlayıcı gecikmesi (25 ms) servis tarafında düzeltilir.
+- Servis, izlediğin yerden 2,5 dakikadan fazla öndeyse yavaşlar; böylece oynatma için kaynak kalır. İzleme yoksa tam hızla biter. Tamamlanınca vokal yine tarayıcıya kaydedilir.
+
+**Güncelleme:** Eklentiyi **Yenile**, YouTube sekmelerini yenile. Servisi kapatıp `vocal-service/BASLAT.cmd` ile yeniden aç (ilk açılışta ekran kartı bileşeni ve model indirilir) ve yeni anahtarı bağla. Eklenti ile servis birlikte güncellenmelidir: eski servis izlerken hazırlamayı desteklemez.
 
 ## 3.0.0 · taşınabilir vokal paneli ve MP3 kitaplığı
 
@@ -59,7 +89,7 @@ YouTube videosunda sağ alttaki `Perde · Vokal` kutusunu kullan. Kayıtlı voka
 - Aynı anda bir vokal oturumu. Süre sınırı 3, 5, 10, 15, 25 veya **40 dakika**; sunucuda da doğrulanır. Yeni kurulumun varsayılanı 40 dakikadır. Eski ayarlar korunur; mevcut kurulumda panelden 40 dakikayı seç.
 - Canlı yayınlar, giriş/yaş doğrulaması/DRM gerektiren videolar ve erişimi kısıtlanan indirmeler desteklenmez. Tarayıcı çerezleri okunmaz.
 - İşlem CPU'da 1–2 dakikadan uzun sürebilir. İlk model indirmesi ayrıca zaman alır. 120 dakikadan uzun veya 10 dakikadır ilerlemeyen iş sonlandırılır ve geçici sesleri temizlenir.
-- Demucs konuşma ile şarkı sözünü ayırt etmez: ikisi de vokalde kalabilir; müziği kusursuz kaldırma garantisi yoktur.
+- Ses ayırma modelleri konuşma ile şarkı sözünü ayırt etmez: ikisi de vokalde kalabilir; müziği kusursuz kaldırma garantisi yoktur.
 - YouTube'un erişim kuralları, ses parçaları ve reklam düzeni değişebilir. Servisin erişemediği ses parçaları seçilemez.
 
 ## Türkçe ses tercihi
@@ -123,8 +153,12 @@ Güncel değişikliklerin kapsamı ve doğrulama sınırları `TEST-SONUCLARI.md
 - `vocal-service/.venv/Scripts/python.exe tests/test_audio_selection.py`: Türkçe dil önceliği, ses dili varyantları ve gerçek yt-dlp/FFmpeg ile yerel çok dilli ses indirme; Demucs bu testte taklittir.
 - `vocal-service/.venv/Scripts/python.exe tests/turkish-track-smoke.py VIDEO_KIMLIGI`: isteğe bağlı ağ testi; gerçek Türkçe ses parçasını indirir, kısa bölümü çözer ve geçici sesleri siler.
 
+- `vocal-service/.venv/Scripts/python.exe tests/test_reliability.py` ve `tests/test_streaming.py`: durum dosyası yarışı, işçi kapanışı, hata mesajları, büyüyen MP3’ün servis edilmesi, oynatma konumu bildirimi ve kodlayıcı gecikmesi.
+- `node tests/browser-stream-real.cjs [VIDEO_KIMLIGI] [SANIYE]`: gerçek servis ve gerçek YouTube sesiyle izlerken hazırlama; ilk oynatma süresi, senkron, bekleme/devam ve geri sarma ölçülür. Ağ ve servis ortamı gerekir.
 - `vocal-service/.venv/Scripts/python.exe tests/long-media-smoke.py`: 40 dakikalık 44.100 Hz stereo WAV akışı ve gerçek MP3 kodlama/çözme; model yerine kimlik dönüşümü kullanılır, tam Demucs hız testi değildir.
 
 Orijinal üçüncü taraf görüntü kütüphaneleri değiştirilmedi. TensorFlow paketinin strict-mode regenerator globalini önce bildiren `vendor-compat.js`, Manifest V3 güvenlik politikasını gevşetmeden yükleme hatasını giderir.
+
+MDX-Net modeli [Ultimate Vocal Remover model deposundan](https://github.com/TRvlvr/model_repo) indirilir; ONNX Runtime DirectML ile çalışır.
 
 Kaynaklar: [Chrome izinleri](https://developer.chrome.com/docs/extensions/reference/api/permissions), [içerik betikleri](https://developer.chrome.com/docs/extensions/reference/api/scripting), [Demucs](https://github.com/facebookresearch/demucs), [yt-dlp](https://github.com/yt-dlp/yt-dlp). TensorFlow.js, COCO-SSD ve BlazeFace lisansları `eklenti/vendor` klasöründe; bağımlılıkların kendi lisansları geçerlidir.

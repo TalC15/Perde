@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Perde</title><link rel="stylesheet" href="popup.css"></head>
 <body>
 <header>
-  <div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 32 36" fill="none"><path d="M7 6h10a8 8 0 0 1 0 16h-4v8H7V6Z" fill="currentColor"/><path d="M13 12v4h4a2 2 0 0 0 0-4h-4Z" fill="#a8f0cf"/></svg></span><div><h1>Perde <small class="version">3</small></h1><p>Görüntü ve ses, senin kontrolünde.</p></div></div>
+  <div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 32 36" fill="none"><path d="M7 6h10a8 8 0 0 1 0 16h-4v8H7V6Z" fill="currentColor"/><path d="M13 12v4h4a2 2 0 0 0 0-4h-4Z" fill="#a8f0cf"/></svg></span><div><h1>Perde <small class="version">3.1</small></h1><p>Görüntü ve ses, senin kontrolünde.</p></div></div>
   <span class="local-badge"><span aria-hidden="true"></span>Cihazında</span>
 </header>
 <nav class="tabs" role="tablist" aria-label="Perde bölümleri">
@@ -19,12 +19,20 @@
       <p id="current-site" class="site-name"></p><p id="detail"></p>
     </section>
     <section class="card">
-      <label class="toggle primary-toggle"><span><strong>İnsan bölgelerini ört</strong><small>Algılanan bütün insanlara uygulanır.</small></span><input id="enabled" type="checkbox" role="switch"></label>
-      <div class="field"><label for="profile">Maskeleme hassasiyeti</label><select id="profile" aria-describedby="profile-help"><option value="loose">Hafif · daha dar maskeler</option><option value="balanced">Dengeli · önerilen</option><option value="high">Yüksek · daha geniş maskeler</option></select><p id="profile-help" class="help">Yüksek hassasiyet, daha fazla bölgeyi örtebilir.</p></div>
+      <label class="toggle primary-toggle"><span><strong>Görsel koruma</strong><small>Videolarda ve görsellerde kişileri cihazında algılayıp örter.</small></span><input id="enabled" type="checkbox" role="switch"></label>
+      <fieldset class="field segment-field"><legend>Kimler örtülsün</legend>
+        <div class="segmented"><label><input type="radio" name="target" value="women"><span>Kadınlar <small>önerilen</small></span></label><label><input type="radio" name="target" value="all"><span>Herkes</span></label></div>
+        <p id="target-help" class="help">Yüzü görünmeyen veya cinsiyeti belirlenemeyen kişiler de örtülür. Erkek olduğu netleşen kişinin örtüsü yumuşakça kalkar.</p>
+      </fieldset>
+      <div class="field"><label for="profile">Koruma seviyesi</label><select id="profile" aria-describedby="profile-help"><option value="loose">Hafif · daha az örtü</option><option value="balanced">Dengeli · önerilen</option><option value="high">Yüksek · en temkinli</option></select><p id="profile-help" class="help">Yüksek seviye daha geniş maske payı kullanır, erkek kararı için daha fazla kesinlik ister ve sahne geçişlerinde görüntüyü kısa süre bulanıklaştırır.</p></div>
+      <fieldset class="field segment-field"><legend>Örtü görünümü</legend>
+        <div class="segmented"><label><input type="radio" name="maskStyle" value="blur"><span>Yumuşak renk</span></label><label><input type="radio" name="maskStyle" value="solid"><span>Düz koyu</span></label></div>
+        <p class="help">Yumuşak renk, örtülen bölgenin yalnızca ortalama renklerini gösterir; ayrıntı görünmez.</p>
+      </fieldset>
       <label class="toggle compact"><span>Analiz hatasında videoyu duraklat</span><input id="pauseOnError" type="checkbox" role="switch"></label>
     </section>
     <details class="card site-card"><summary>Diğer sitelerde kullan<span class="summary-hint">Site izni</span></summary><p class="help">Yalnızca izin verdiğin sitelerde çalışır. Okunamayan görseller bulanık kalır; bazı özel video oynatıcıları desteklenmez.</p><button id="allow-site" class="full">Bu sitede korumayı aç</button><p id="site-status" class="message" role="status"></p><ul id="sites"></ul></details>
-    <p class="footnote">Görüntüler cihazında analiz edilir. Algılama hatasız değildir.</p>
+    <p class="footnote">Görüntüler cihazında analiz edilir, hiçbir yere gönderilmez. Algılama ve cinsiyet tahmini hatasız değildir.</p>
   </section>
 
   <section id="panel-vocals" role="tabpanel" aria-labelledby="tab-vocals" hidden>

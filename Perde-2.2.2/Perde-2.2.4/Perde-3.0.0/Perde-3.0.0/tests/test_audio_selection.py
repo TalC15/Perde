@@ -179,13 +179,16 @@ class DownloaderIntegrationTests(unittest.TestCase):
         def capture_state(folder, state, error=None, **values):
             states.append({'state': state, **values})
             real_write_state(folder, state, error, **values)
-        def separate_fixture(source, target, device, on_progress=None):
-            shutil.copyfile(source, target)
+        def separate_fixture(source, sink, device, engine, on_progress=None):
+            import numpy as np
             with wave.open(str(source), 'rb') as recording:
                 frames = recording.getnframes()
                 rate = recording.getframerate()
+                pcm = np.frombuffer(recording.readframes(frames), '<i2').reshape(-1, recording.getnchannels())
+            sink.write(pcm.astype(np.float32) / 32768)
             if on_progress:
                 on_progress(frames, frames, rate)
+            return 'cpu'
         with patch.object(self.yt_dlp, 'YoutubeDL', FixtureDownloader), \
              patch.object(worker, 'write_state', capture_state), \
              patch.object(worker, 'separate', separate_fixture):
@@ -194,7 +197,7 @@ class DownloaderIntegrationTests(unittest.TestCase):
 
     def test_real_download_selects_turkish_and_keeps_language_in_progress(self):
         metadata, extractions, selected_ids, states = self.run_worker(['tr', 'en'])
-        self.assertEqual(metadata, {'audioLanguage': 'tr', 'audioSelection': 'turkish', 'totalSeconds': .25})
+        self.assertEqual(metadata, {'audioLanguage': 'tr', 'audioSelection': 'turkish', 'totalSeconds': .25, 'device': 'cpu'})
         self.assertEqual(extractions, 1)
         self.assertEqual(selected_ids, ['track-0'])
         self.assertEqual(self.requests, ['/track-0.wav'])
@@ -206,7 +209,7 @@ class DownloaderIntegrationTests(unittest.TestCase):
 
     def test_real_download_without_turkish_uses_original_and_reports_fallback(self):
         metadata, extractions, selected_ids, states = self.run_worker(['en'])
-        self.assertEqual(metadata, {'audioLanguage': 'en', 'audioSelection': 'fallback', 'totalSeconds': .25})
+        self.assertEqual(metadata, {'audioLanguage': 'en', 'audioSelection': 'fallback', 'totalSeconds': .25, 'device': 'cpu'})
         self.assertEqual(extractions, 1)
         self.assertEqual(selected_ids, ['track-0'])
         self.assertEqual(self.requests, ['/track-0.wav'])

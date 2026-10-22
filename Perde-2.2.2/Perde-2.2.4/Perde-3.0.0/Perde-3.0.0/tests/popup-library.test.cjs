@@ -23,8 +23,10 @@ async function panel(initialItems=[],initialFailures=[]){
   const elements=new Map(ids.map(id=>[id,new Element()]));
   for(const id of ['enabled','pauseOnError','muteAds','blockGambling','vocalEnabled'])elements.get(id).type='checkbox';
   const state={items:initialItems,messages:[],tabs:[],failures:new Set(initialFailures),waitFor:null,service:{connected:false,tokenPresent:false}};
+  const radios=[...html.matchAll(/type="radio" name="([^"]+)" value="([^"]+)"/g)].map(([,name,value])=>Object.assign(new Element('input'),{type:'radio',name,value}));
   const document={
     getElementById:id=>{assert(elements.has(id),`Missing popup element ${id}`);return elements.get(id);},
+    querySelectorAll:selector=>radios.filter(radio=>selector===`input[name="${radio.name}"]`),
     createElement:tag=>new Element(tag),createTextNode:value=>value,hidden:false
   };
   const chrome={

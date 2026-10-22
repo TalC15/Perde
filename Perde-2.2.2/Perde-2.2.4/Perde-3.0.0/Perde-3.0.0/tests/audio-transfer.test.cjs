@@ -3,6 +3,7 @@ const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function engine(fetch,library={get:async()=>null,put:async()=>{}}){
   let listener,blob;const audio={pause(){},removeAttribute(){},load(){}};
   const context=vm.createContext({chrome:{runtime:{id:'test',onMessage:{addListener:f=>listener=f}}},performance,setInterval(){},setTimeout,clearTimeout,AbortController,Blob,PerdeVocalLibrary:library,Audio:function(){return audio;},URL:{createObjectURL:b=>{blob=b;return 'blob:test';},revokeObjectURL(){}},fetch});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../eklenti/vocal-stream.js'),'utf8'),context);
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../eklenti/audio-engine.js'),'utf8'),context);
   const send=(fields={})=>new Promise(resolve=>listener({target:'perde-audio',type:'audio-load',job:'a'.repeat(32),token:'secret',...fields},{id:'test'},resolve));
   return {send,blob:()=>blob};

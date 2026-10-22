@@ -84,6 +84,7 @@ test('Remote unpermitted pages cannot use privileged fetch',async()=>{
 test('Offscreen rejects direct page instructions and silences an expired playback lease',async()=>{
   let listener,timer,clock=0;const audio={paused:true,currentTime:0,playbackRate:1,volume:1,pause(){this.paused=true;},async play(){this.paused=false;},removeAttribute(){},load(){}};
   const context=vm.createContext({chrome:{runtime:{id:'test',onMessage:{addListener:f=>listener=f}},storage:{local:{set:async()=>{}}}},PerdeVocalLibrary:{info:async()=>null},performance:{now:()=>clock},setInterval:f=>timer=f,setTimeout,clearTimeout,AbortController,Blob,Audio:function(){return audio;},URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},AbortSignal,fetch:async()=>new Response(new Uint8Array(100),{status:206,headers:{'Content-Range':'bytes 0-99/100'}})});
+  vm.runInContext(fs.readFileSync(path.join(root,'vocal-stream.js'),'utf8'),context);
   vm.runInContext(fs.readFileSync(path.join(root,'audio-engine.js'),'utf8'),context);
   const send=(msg,sender={id:'test'})=>new Promise(resolve=>{if(!listener({...msg,target:'perde-audio'},sender,resolve))resolve(undefined);});
   assert.equal(await send({type:'audio-load',job:'a'.repeat(32),token:'x'},youtube),undefined);

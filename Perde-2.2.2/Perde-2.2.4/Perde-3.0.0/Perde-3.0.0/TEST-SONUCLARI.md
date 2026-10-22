@@ -1,4 +1,15 @@
-# Perde doğrulama notları — 15 Ekim 2026
+# Perde doğrulama notları — 22 Ekim 2026
+
+## 3.1.0 · kadın odaklı örtü, vokal hataları, ekran kartı ve izlerken hazırlama
+
+- **82/82 JavaScript testi geçti** (`node --test tests/*.test.cjs`). Yeni: cinsiyet kararları ve izleme, MP3 kare dizini (rastgele parça sınırlarında yalnız tam kareler), büyüyen kaydın ilk bölümünün oynatılması, hazırlanan kısmın ötesinde vokalin susması, ayırma hatasının nedeniyle bildirilmesi.
+- **88/88 Python testi geçti**: 27 soketsiz servis, 13 HTTP servis, 14 ses seçimi, 14 kayıt, 4 CPU, 3 ses akışı, 2 süreç, 7 güvenilirlik, 4 akış. Güvenilirlik testi Windows’ta durum dosyası yarışını gerçek iki süreçle kurar: eski kod 300 güncellemenin 62’sinde işi düşürdü, yeni kod hiçbirinde.
+- **Gerçek uçtan uca test** (`tests/browser-stream-real.cjs`, gerçek servis, gerçek YouTube sesi, 3:33 müzik videosu, ekran kartı/DirectML): ilk vokal **34,2 sn**’de oynatılabildi; video–vokal farkı ortanca **51 ms**; hazırlanan kısmın sonuna atlanınca video durdu ve 17 sn sonra kendiliğinden devam etti; Media Source penceresinden çıkmış başa geri sarma çalıştı; tamamı **138,4 sn**’de aktarıldı ve tarayıcı kitaplığına kaydedildi. Sayfa yerel bir sessiz video örneğidir; canlı YouTube oynatıcısı değildir.
+- **Ses ayırma ölçümleri** (bu bilgisayar, AMD Radeon, DirectML): MDX-Net 30 sn ses 12,2 sn’de, 171 sn’lik şarkı 60,5 sn’de (2,8× gerçek zaman). İşlemcide MDX ~0,9×, Demucs ~1,2×. MUSDB18 örnek kesitinde vokal SDR: MDX 8,88 dB, Demucs 8,09 dB. STFT/ISTFT uygulaması PyTorch ile karşılaştırıldı (bağıl hata 2·10⁻⁷).
+- **Kurulum** `BASLAT.cmd` ile gerçekten çalıştırıldı: `onnxruntime-directml` kuruldu, model indirildi ve SHA-256 ile doğrulandı.
+- **Görsel**: 165 yüzlük örnek sette cinsiyet doğruluğu %98,8; video kare kaybı koruma açıkken %10–14’ten %1–2’ye indi (başsız Brave, 12 sn örnek video). Canlı YouTube’da ölçülmedi.
+- Bilinen: `tests/browser-audio-integration.cjs` “audio fetch” adımında zaman aşımına uğruyor; aynı test commit edilmiş 3.0.0 sürümünde de aynı yerde başarısız. `browser-controls.cjs` ve `browser-library-smoke.cjs` geçti. `SHA256SUMS.json` bu değişikliklerden sonra yeniden üretilmedi.
+
 
 ## 3.0.0 · bağlantı, sürükleme ve arka plan müziği
 

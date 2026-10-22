@@ -41,6 +41,27 @@ try {
         & $venvPython -c $probe
         if ($LASTEXITCODE -ne 0) { throw 'Ses bilesenleri dogrulanamadi.' }
     }
+    # Fast engine: MDX-Net on the graphics card (DirectML). Optional; without it
+    # the service separates with Demucs on the processor.
+    # Its failures only print a notice, so native stderr must not stop the script.
+    $ErrorActionPreference = 'Continue'
+    $gpuProbe = "import onnxruntime as o, sys; sys.exit(0 if 'DmlExecutionProvider' in o.get_available_providers() else 1)"
+    & $venvPython -c $gpuProbe 2>$null
+    if ($LASTEXITCODE -ne 0 -and -not ($SkipInstall -or $CheckOnly)) {
+        Write-Host 'Ekran karti ile hizli ses ayirma bileseni kuruluyor...'
+        & $venvPython -m pip uninstall -y onnxruntime 2>$null | Out-Null
+        & $venvPython -m pip install onnxruntime-directml==1.24.4
+        & $venvPython -c $gpuProbe 2>$null
+    }
+    $fastEngine = $LASTEXITCODE -eq 0
+    if ($fastEngine -and -not $CheckOnly) {
+        & $venvPython (Join-Path $serviceRoot 'setup_mdx.py') $modelRoot
+        $fastEngine = $LASTEXITCODE -eq 0
+    }
+    $ErrorActionPreference = 'Stop'
+    if (-not $fastEngine) {
+        Write-Host 'Hizli (ekran karti) motoru kullanilamiyor; ses islemciyle ayrilacak. Daha uzun surer.' -ForegroundColor Yellow
+    }
     if ($CheckOnly) { Write-Host 'OK: Python, ses bilesenleri ve Node.js hazir.'; exit 0 }
     & $venvPython (Join-Path $serviceRoot 'launch.py')
     exit $LASTEXITCODE
