@@ -1,12 +1,29 @@
-# Perde 3.1.0 — çalışma notu
+# Perde 3.1.1 — çalışma notu
 
 HAKKINDA.txt değiştirilmedi. İnsan, yüz ve cinsiyet algılama yereldir. Varsayılan olarak kadınlar ve cinsiyeti belirlenemeyen kişiler örtülür; panelden **Herkes** seçilirse algılanan bütün insanlar örtülür.
+
+## 3.1.1 · erkekler artık açılıyor
+
+3.1.0’da kadınlar modunda erkeklerin neredeyse hepsi örtülü kalıyordu. Nedenleri ve düzeltmeler:
+
+- **Hata:** Bir kişinin cinsiyet oyları, iki analiz arası 0,4 saniyeyi geçince sıfırlanıyordu; analizler ise video akıcılığı için 0,5–1,2 saniyede bir yapılıyor. “En az iki emin bakış” koşulu hiç dolmuyordu. Artık aynı kişi 2,5 saniyeye kadar takip edilir.
+- **Kalabalık:** Bir kişi kutusundaki en “kadınsı” yüz o kişiye yazılıyordu; yanındaki birinin yüzü erkeği örtülü bırakıyordu. Artık her yüz yalnızca başına en uygun kişiye eşlenir; eşlenmeyen yüz kendi örtüsünü alır.
+- **Arkadaki kişi:** Yüzü görünmeyen (bu yüzden örtülü kalan) kişinin kutusu öndeki erkeğin başını da kapatıyordu. Bu örtüde artık açılan erkeğin başı kadar bir boşluk bırakılır.
+- **Daha net yüz:** Kadınlar modunda kare 1280 piksele kadar gönderilir; cinsiyet modeli yüzü küçültülmüş kareden değil tam çözünürlükten görür.
+- **Daha hızlı karar:** Sahne geçişinden sonra iki analiz art arda yapılır; tek bakışta erkek görünen kişiye ikinci bakış hemen gelir. Kararı verilmiş kişiler 2,5 saniye yeniden incelenmez.
+- **Eşik:** Dengeli profilde erkek eşiği 0,85’ten 0,80’e indi (gevşek 0,72, yüksek 0,88). Örnek setlerde hiçbir kadın tek karede bile 0,75’i geçmedi; karar en az iki bakışın ortalamasıyla verilir.
+
+Gerçek videolarla ölçüm (40 sn oynatma, 0,5 sn’de bir sayım): haber klibinde açık erkek görülen ölçümler 0/77 → 59/77, talk show’da 2/77 → 61/76. Kadın ağırlıklı iki klipte hiçbir kadın açılmadı. Kare kaybı değişmedi (%0–1,4); analiz süresi kare başına 8–19 ms arttı.
+
+Sınırlar: Arkası dönük veya yüzü görünmeyen kişiler örtülü kalır. Uzak, bulanık ve yandan görünen yüzlerde karar daha geç verilir ya da hiç verilmez. Kişi kutusu dar çıkarsa kıyafet kenarları görünebilir.
+
+**Güncelleme:** Eklentiyi **Yenile** (sürüm 3.1.1 görünmeli) ve YouTube sekmesini yenile. Ses servisinde değişiklik yok.
 
 ## 3.1.0 · kadın odaklı örtü, hızlı vokal ve izlerken hazırlama
 
 **Görsel koruma**
 
-- **Kimler örtülsün: Kadınlar / Herkes** (Koruma sekmesi). Kadınlar modunda her kişinin yüzü cihazda bir cinsiyet modeline gösterilir. Erkek olduğu birkaç bakışta netleşen kişinin örtüsü yumuşakça kalkar; kadınlar, yüzü görünmeyenler ve belirsiz kalanlar örtülü kalır. Örnek 165 yüzlük sette doğruluk %98,8 idi ve dengeli eşikte hiçbir kadın erkek sanılmadı. Bu bir garanti değildir.
+- **Kimler örtülsün: Kadınlar / Herkes** (Koruma sekmesi). Kadınlar modunda her kişinin yüzü cihazda bir cinsiyet modeline gösterilir. Erkek olduğu birkaç bakışta netleşen kişinin örtüsü yumuşakça kalkar; kadınlar, yüzü görünmeyenler ve belirsiz kalanlar örtülü kalır. Örnek 165 yüzlük sette doğruluk %98,8 idi ve dengeli eşikte hiçbir kadın erkek sanılmadı. Bu bir garanti değildir. (3.1.1’deki düzeltmelere bakın.)
 - **Örtü görünümü:** **Yumuşak renk** örtülen bölgenin yalnızca ortalama renklerini gösterir (ayrıntı görünmez); **Düz koyu** tek renktir.
 - Analiz, ekran kartının yaklaşık en fazla %15’ini kullanacak hızda yapılır; aradaki karelerde maskeler hareket takibiyle kaydırılır. Testte video kare kaybı %10–14’ten %1–2’ye indi. Sahne değişiminde ve sarmada hemen yeni analiz yapılır.
 - Modeller ilk açılışta hazırlanır. Cinsiyet modeli hazır olana kadar algılanan herkes örtülür; panel bunu söyler. Modeller (`eklenti/face`, `eklenti/gender`) `@vladmandic/human-models` 3.0.4 paketindendir; lisansı `eklenti/vendor/HUMAN-MODELS-LICENSE.txt`.

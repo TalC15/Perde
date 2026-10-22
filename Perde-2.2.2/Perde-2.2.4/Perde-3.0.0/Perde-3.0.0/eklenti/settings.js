@@ -5,9 +5,9 @@
   // gpuShare: the largest share of graphics time analysis may use, so video
   // playback keeps its frames; motion tracking moves masks in between.
   const profiles={
-    loose:{confidence:.4,padding:.08,detail:'normal',frame:640,maleThreshold:.75,genderLimit:2,cutBlur:false,gpuShare:.1},
-    balanced:{confidence:.25,padding:.15,detail:'normal',frame:800,maleThreshold:.85,genderLimit:3,cutBlur:false,gpuShare:.15},
-    high:{confidence:.15,padding:.25,detail:'high',frame:960,maleThreshold:.92,genderLimit:4,cutBlur:true,gpuShare:.25}
+    loose:{confidence:.4,padding:.08,detail:'normal',frame:640,maleThreshold:.72,genderLimit:2,cutBlur:false,gpuShare:.1},
+    balanced:{confidence:.25,padding:.15,detail:'normal',frame:800,maleThreshold:.8,genderLimit:3,cutBlur:false,gpuShare:.15},
+    high:{confidence:.15,padding:.25,detail:'high',frame:960,maleThreshold:.88,genderLimit:4,cutBlur:true,gpuShare:.25}
   };
   const targets=['women','all'],maskStyles=['blur','solid'];
   const defaults={enabled:true,profile:'balanced',target:'women',maskStyle:'blur',pauseOnError:true,muteAds:true,blockGambling:false,vocalEnabled:true,maxMinutes:40};

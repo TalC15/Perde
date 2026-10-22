@@ -38,13 +38,18 @@ test('Extra face tiles run only when people are small',()=>{
   assert.ok(faces.tiles(720,1280,null).slice(1).every(t=>t.x===0&&t.y+t.size<=1280));
 });
 
-test('Faces join the person whose head region they occupy; the most female-looking face decides',()=>{
+test('Each face joins the one person whose head it fits; a neighbour keeps its own covered box',()=>{
   const person=[.4,.1,.2,.8];
   const man={box:[.46,.12,.06,.08],score:.9,male:.96,weight:1};
   const woman={box:[.5,.13,.06,.08],score:.9,male:.1,weight:1};
+  const plain=r=>r.evidence.map(e=>e&&{male:e.male,weight:e.weight});
   let r=faces.combine([person],[man]);
-  assert.deepEqual(r.evidence,[{male:.96,weight:1}]);assert.equal(r.boxes.length,1);
-  r=faces.combine([person],[man,woman]);assert.deepEqual(r.evidence,[{male:.1,weight:1}]);
+  assert.deepEqual(plain(r),[{male:.96,weight:1}]);assert.deepEqual(r.evidence[0].face,man.box);assert.equal(r.boxes.length,1);
+  // The man is judged by his own face; the woman next to him is covered on her own.
+  r=faces.combine([person],[man,woman]);assert.deepEqual(plain(r),[{male:.96,weight:1},{male:.1,weight:1}]);assert.equal(r.boxes.length,2);
+  // Two people, two faces: each person gets the face at its own head.
+  r=faces.combine([[.1,.1,.2,.8],[.25,.1,.2,.8]],[{...woman,box:[.17,.12,.06,.08]},{...man,box:[.32,.12,.06,.08]}]);
+  assert.deepEqual(plain(r),[{male:.1,weight:1},{male:.96,weight:1}]);
   // A face low in the box (a carried child) and a face outside get their own covered box.
   const low={box:[.45,.7,.05,.06],score:.9,male:null,weight:0};
   r=faces.combine([person],[low]);assert.equal(r.boxes.length,2);assert.equal(r.evidence[1],null);
@@ -73,14 +78,17 @@ test('Uncertain track matches and scene cuts restart the decision',()=>{
   const tracker=new tracking.Tracker(),man={male:.97,weight:1};
   tracker.update([[.1,.1,.2,.5]],0,[man]);tracker.update([[.11,.1,.2,.5]],150,[man]);
   assert.equal(tracker.sample(160)[0].male,true);
-  tracker.update([[.12,.1,.2,.5]],700,[null]);
-  assert.equal(tracker.sample(710)[0].male,false,'a long gap may hide a different person');
-  tracker.update([[.12,.1,.2,.5]],800,[man]);tracker.update([[.12,.1,.2,.5]],900,[man]);
-  assert.equal(tracker.sample(910)[0].male,true);
-  tracker.update([[.12,.1,.4,.8]],1000,[null]);
-  assert.equal(tracker.sample(1010)[0].male,false,'a sudden size change restarts the vote');
-  tracker.update([[.12,.1,.4,.8]],1100,[man]);tracker.update([[.12,.1,.4,.8]],1200,[man]);
-  tracker.resetGender();assert.equal(tracker.sample(1210)[0].male,false);
+  // Analyses are 0.25-1.2 s apart: the decision must survive that gap.
+  tracker.update([[.12,.1,.2,.5]],1100,[null]);
+  assert.equal(tracker.sample(1110)[0].male,true,'the same person across a normal analysis interval');
+  tracker.update([[.12,.1,.2,.5]],4000,[null]);
+  assert.equal(tracker.sample(4010)[0].male,false,'a long gap may hide a different person');
+  tracker.update([[.12,.1,.2,.5]],4500,[man]);tracker.update([[.12,.1,.2,.5]],5300,[man]);
+  assert.equal(tracker.sample(5310)[0].male,true,'two looks 0.8 s apart decide');
+  tracker.update([[.12,.1,.4,.8]],5600,[null]);
+  assert.equal(tracker.sample(5610)[0].male,false,'a sudden size change restarts the vote');
+  tracker.update([[.12,.1,.4,.8]],5800,[man]);tracker.update([[.12,.1,.4,.8]],6000,[man]);
+  tracker.resetGender();assert.equal(tracker.sample(6010)[0].male,false);
 });
 
 test('Displayed masks grow immediately and never shrink below the person',()=>{
@@ -91,4 +99,18 @@ test('Displayed masks grow immediately and never shrink below the person',()=>{
   assert.ok(moved[0]<110&&moved[0]>=100,'left edge eases');assert.equal(moved[0]+moved[2],210,'right edge jumps');
   assert.deepEqual(tracking.settle(shown,[500,500,50,50],16),[500,500,50,50],'far jumps snap');
   assert.deepEqual(tracking.settle(null,[1,2,3,4]),[1,2,3,4]);
+});
+test('A covered box behind a shown man gets a hole only at his head',()=>{
+  const box=[.4,.3,.2,.6],face=[.47,.32,.06,.08];
+  const rel=tracking.relative(face,box);
+  assert.deepEqual(rel.map(v=>+v.toFixed(3)),[.35,.033,.3,.133]);
+  const head=tracking.head(box,rel);
+  // Slightly larger than the face, mostly upwards for hair.
+  assert.ok(head[0]<face[0]&&head[1]<face[1]&&head[0]+head[2]>face[0]+face[2]&&head[1]+head[3]>face[1]+face[3]);
+  assert.ok(head[2]<face[2]*1.6&&head[3]<face[3]*1.8);
+  assert.equal(tracking.head(box,null),null);assert.equal(tracking.relative(null,box),null);
+  // The face travels with the track's box.
+  const tracker=new tracking.Tracker();
+  tracker.update([box],0,[{male:.97,weight:1,face}]);tracker.update([[.42,.3,.2,.6]],500,[null]);
+  const item=tracker.sample(510)[0];assert.ok(item.face);assert.deepEqual(item.face,tracker.tracks[0].face);
 });

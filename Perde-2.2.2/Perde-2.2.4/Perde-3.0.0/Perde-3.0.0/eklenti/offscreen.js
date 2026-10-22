@@ -60,11 +60,12 @@ async function findFaces(batch,width,height,people,model=faceModel){
   list.forEach((tile,i)=>found.push(...PerdeFaces.decode(data.subarray(i*size,(i+1)*size),tile,.6)));
   return PerdeFaces.suppress(found);
 }
-async function classify(batch,width,height,faces,limit,skip){
+async function classify(batch,width,height,faces,limit,skip,scale=1){
   // Probability that each face is male; null when the face is too small/uncertain
-  // or belongs to a person already settled as female (cost grows per face).
+  // or belongs to a person whose decision is already settled (cost grows per face).
+  // batch may be the full-resolution frame: crops use normalized coordinates.
   const result=faces.map(()=>null);
-  const order=faces.map((face,index)=>({index,weight:PerdeFaces.quality(face),size:face.box[2]*face.box[3]}))
+  const order=faces.map((face,index)=>({index,weight:PerdeFaces.quality(face,scale),size:face.box[2]*face.box[3]}))
     .filter(x=>x.weight>0&&!PerdeFaces.inside(faces[x.index].box,width,height,skip)).sort((a,b)=>b.size-a.size).slice(0,limit);
   if(!genderModel||!order.length)return result;
   for(let i=0;i<order.length;i+=GENDER_BATCH){
@@ -86,7 +87,7 @@ async function detect(message){
   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.naturalWidth*factor));canvas.height=Math.max(1,Math.round(image.naturalHeight*factor));
   canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
   const W=canvas.width,H=canvas.height,begin=performance.now();
-  const pixels=tf.browser.fromPixels(canvas);let floats=null;
+  const pixels=tf.browser.fromPixels(canvas);let floats=null,full=null;
   try{
     const predictions=await personModel.detect(pixels,100,message.confidence===.4?.4:message.confidence===.15?.15:.25);
     const timing={person:Math.round(performance.now()-begin)};
@@ -97,12 +98,20 @@ async function detect(message){
     timing.face=Math.round(performance.now()-mark);mark=performance.now();
     const limit=Number.isInteger(message.genderLimit)?Math.max(0,Math.min(8,message.genderLimit)):3;
     const skip=Array.isArray(message.skip)?message.skip.slice(0,30).filter(b=>Array.isArray(b)&&b.length===4&&b.every(Number.isFinite)):[];
-    const genders=message.genders===false?faces.map(()=>null):await classify(floats,W,H,faces,limit,skip);
+    // Gender crops come from the full frame: small faces keep their detail.
+    let genders=faces.map(()=>null);
+    if(message.genders!==false&&genderModel&&faces.length){
+      const scale=image.naturalWidth/W;
+      if(scale>1.05){full=tf.tidy(()=>tf.expandDims(tf.cast(tf.browser.fromPixels(image),'float32')));genders=await classify(full,W,H,faces,limit,skip,scale);}
+      else genders=await classify(floats,W,H,faces,limit,skip);
+    }
     timing.gender=Math.round(performance.now()-mark);
     const combined=PerdeFaces.combine(people,faces.map((face,i)=>({box:[face.box[0]/W,face.box[1]/H,face.box[2]/W,face.box[3]/H],score:face.score,male:genders[i]?.male??null,weight:genders[i]?.weight||0})));
     if(!combined.boxes.every(b=>b.every(Number.isFinite)))throw Error('Model geçersiz koordinat üretti');
-    return {ok:true,boxes:combined.boxes,evidence:combined.evidence,faces:faces.length,genderReady:!!genderModel,timing,ms:Math.round(performance.now()-begin),backend:tf.getBackend(),warning:engineStatus.warning};
-  }finally{pixels.dispose();floats?.dispose();}
+    // debug: per-face results for the test page and offline evaluation.
+    const faceDetails=message.debug===true?faces.map((face,i)=>({box:[face.box[0]/W,face.box[1]/H,face.box[2]/W,face.box[3]/H],score:face.score,male:genders[i]?.male??null,weight:genders[i]?.weight||0})):undefined;
+    return {ok:true,boxes:combined.boxes,evidence:combined.evidence,faces:faces.length,faceDetails,genderReady:!!genderModel,timing,ms:Math.round(performance.now()-begin),backend:tf.getBackend(),warning:engineStatus.warning};
+  }finally{pixels.dispose();floats?.dispose();full?.dispose();}
 }
 chrome.runtime.onMessage.addListener((message,sender,respond)=>{
   if(sender.id!==chrome.runtime.id||sender.tab)return;

@@ -5,7 +5,7 @@
   let settings={...DEFAULTS},generation=0,siteDisabled=false;
   const records=new Map(),parents=new WeakMap();const diagnostics=[];
   const intersections=new IntersectionObserver(entries=>{for(const entry of entries){const record=records.get(entry.target);if(record){record.inView=entry.isIntersecting;if(!record.inView)record.layer.style.display='none';}}},{rootMargin:'160px'});
-  const status={version:'3.1.0',model:'hazırlanıyor',frames:0,images:0,people:0,covered:0,visible:0,ms:0,genderReady:false,error:null};
+  const status={version:'3.1.1',model:'hazırlanıyor',frames:0,images:0,people:0,covered:0,visible:0,ms:0,genderReady:false,error:null};
   let inferenceBusy=false,scheduled=false;
   const {Tracker,contentRect,expanded,settle}=PerdeTracking;
   // Blob masks are painted from a tiny copy of the region: no detail survives.
@@ -143,7 +143,9 @@
     const frame=contentRect({left:0,top:0,width:rect.width,height:rect.height},width,height,fit,style.objectPosition);
     // A paused frame must stay censored. A slow inference must not erase a mask.
     const sampleTime=Math.min(now,record.observedAt+(element.paused?220:1000));
-    const items=record.type==='image'?record.staticBoxes||[]:record.motionBoxes?.map(item=>({...item,box:expanded(item.box,settings.padding)}))||record.tracker.sample(sampleTime,settings.padding);
+    const items=record.type==='image'?record.staticBoxes||[]:record.motionBoxes?.map(item=>({...item,raw:item.box,box:expanded(item.box,settings.padding)}))||record.tracker.sample(sampleTime,settings.padding);
+    // Heads of people left visible; a covered box behind them gets a hole there.
+    const heads=items.filter(item=>!covers(item)&&item.face).map(item=>PerdeTracking.head(item.raw,item.face));
     const dt=Math.min(100,now-(record.drawnAt||now));record.drawnAt=now;
     const used=new Set(),noted=new Set();let covered=0;
     for(const item of items){
@@ -162,6 +164,15 @@
       mask.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
       mask.style.width=`${w.toFixed(1)}px`;mask.style.height=`${h.toFixed(1)}px`;
       mask.style.setProperty('--perde-radius',`${Math.round(Math.min(26,Math.max(6,Math.min(w,h)*.16)))}px`);
+      const own=item.face?PerdeTracking.head(item.raw,item.face):null;
+      const holes=heads.filter(head=>PerdeTracking.overlap(head,item.box)>0&&!(own&&PerdeTracking.overlap(own,head)>.05)).map(head=>{
+        const l=(frame.left+head[0]*frame.width-x)/w*100,t=(frame.top+head[1]*frame.height-y)/h*100;
+        const r=l+head[2]*frame.width/w*100,b=t+head[3]*frame.height/h*100;
+        const c=v=>Math.max(0,Math.min(100,v)).toFixed(1)+'%';
+        return `${c(l)} ${c(t)},${c(r)} ${c(t)},${c(r)} ${c(b)},${c(l)} ${c(b)},${c(l)} ${c(t)}`;
+      });
+      const clip=holes.length?`polygon(evenodd,0% 0%,100% 0%,100% 100%,0% 100%,0% 0%,${holes.join(',')})`:'';
+      if(mask.style.clipPath!==clip)mask.style.clipPath=clip;
       paint(record,mask,item.box,now);
     }
     for(const [id,mask]of record.masks)if(!used.has(id)&&!mask.leaving){
@@ -179,7 +190,8 @@
     // A new shot may show different people at the same place: decisions restart.
     record.tracker.resetGender();
     if(record.motionBoxes)record.motionBoxes=record.motionBoxes.map(item=>({...item,male:false}));
-    record.last=0;record.time=-1;record.urgent=true;
+    // Two looks right after the cut: a man is uncovered after two agreeing looks.
+    record.last=0;record.time=-1;record.urgent=true;record.boost=2;
     if(settings.cutBlur)record.element.setAttribute('data-perde-starting','true');
     queueMicrotask(tick);
   }
@@ -203,8 +215,8 @@
   function dataUrl(blob){
     return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error);reader.readAsDataURL(blob);});
   }
-  async function snapshot(element,width,height){
-    const factor=Math.min(1,settings.frame/Math.max(width,height));
+  async function snapshot(element,width,height,size=settings.frame){
+    const factor=Math.min(1,size/Math.max(width,height));
     const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(width*factor));canvas.height=Math.max(1,Math.round(height*factor));
     // A CPU canvas keeps the GPU free for video; JPEG encoding runs off the main thread.
     canvas.getContext('2d',{willReadFrequently:true}).drawImage(element,0,0,canvas.width,canvas.height);
@@ -231,14 +243,17 @@
     record.last=now;record.urgent=false;
     try{
       let data;
-      if(type==='video'){motionFrame(record,performance.now(),true);data=await snapshot(element,element.videoWidth,element.videoHeight);}
+      // Women mode sends a sharper frame: faces are cropped from it for the gender model.
+      const size=settings.target==='women'?Math.max(settings.frame,1280):settings.frame;
+      if(type==='video'){motionFrame(record,performance.now(),true);data=await snapshot(element,element.videoWidth,element.videoHeight,size);}
       else{
-        try{data=await snapshot(element,element.naturalWidth,element.naturalHeight);}
+        try{data=await snapshot(element,element.naturalWidth,element.naturalHeight,size);}
         catch{data=(await rpc({type:'image-read',url:source})).image;}
       }
       const captureSequence=record.history.at(-1)?.sequence;
-      // People already settled as women stay covered; their faces need no new look.
-      const skip=settings.target==='women'?record.tracker.tracks.filter(t=>t.gender?.obs.length>=2&&t.gender.mean<.3).map(t=>t.box):[];
+      // Settled people need no new gender look: women stay covered, and a fresh
+      // male decision is checked again after a few seconds.
+      const skip=settings.target==='women'?record.tracker.tracks.filter(t=>t.gender?.obs.length>=2&&(t.gender.mean<.3||t.gender.male&&now-t.gender.at<2500)).map(t=>t.box):[];
       const result=await rpc({type:'detect',image:data,confidence:settings.confidence,detail:settings.detail,frame:settings.frame,genderLimit:settings.genderLimit,genders:settings.target==='women',skip});
       if(epoch!==record.epoch||version!==generation||!element.isConnected||source!==(type==='video'?element.currentSrc:(element.currentSrc||element.src)))return;
       const timestamp=performance.now();
@@ -246,12 +261,15 @@
       if(type==='video'){
         const boxes=PerdeMotion.replay(result.boxes,record.history,captureSequence);
         record.tracker.update(boxes,timestamp,evidence,settings.maleThreshold);
-        record.motionBoxes=record.tracker.tracks.map(t=>({id:t.id,box:[...t.box],male:t.gender?.male===true,score:t.gender?.mean??null}));
+        record.motionBoxes=record.tracker.tracks.map(t=>({id:t.id,box:[...t.box],face:t.face||null,male:t.gender?.male===true,score:t.gender?.mean??null}));
       }else{
         // A still image is judged once, so it needs a stricter single-look decision.
-        record.staticBoxes=result.boxes.map((box,id)=>{const e=evidence[id];return {id,box:expanded(PerdeTracking.clip(box),settings.padding),male:!!e&&e.weight>=.6&&e.male>=Math.min(.97,settings.maleThreshold+.05),score:e?.male??null};});
+        record.staticBoxes=result.boxes.map((box,id)=>{const e=evidence[id],raw=PerdeTracking.clip(box);return {id,box:expanded(raw,settings.padding),raw,face:PerdeTracking.relative(e?.face,raw),male:!!e&&e.weight>=.6&&e.male>=Math.min(.97,settings.maleThreshold+.05),score:e?.male??null};});
       }
       record.observedAt=timestamp;record.interval=Math.min(1200,Math.max(250,(Number(result.ms)||timestamp-now)/settings.gpuShare));
+      // Someone one agreeing look away from being uncovered gets that look soon.
+      if(type==='video'&&record.tracker.tracks.some(t=>t.gender&&!t.gender.male&&t.gender.obs.length===1&&t.gender.mean>=settings.maleThreshold))record.interval=Math.min(record.interval,300);
+      if(record.boost>0){record.boost--;record.urgent=record.boost>0;}
       record.processed=true;record.error=null;record.retryAt=0;
       record.looks=record.time===mediaTime?(record.looks||1)+1:1;
       record.time=mediaTime;status.model=result.backend;status.ms=result.ms;status.people=result.boxes.length;status.genderReady=result.genderReady===true;

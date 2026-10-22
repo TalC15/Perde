@@ -1,4 +1,10 @@
-# Perde doğrulama notları — 22 Ekim 2026
+# Perde doğrulama notları — 22 Ekim 2026 (3.1.1)
+
+## 3.1.1 · kadınlar modunda erkeklerin açılması
+
+- **83/83 JavaScript testi geçti.** Yeni/değişen: analiz aralığı kadar ara verilse de kararın korunması, uzun aradan sonra yeniden başlaması, yüzlerin bire bir kişi eşlemesi, komşu yüzün kendi örtüsünü alması, öndeki erkeğin başı için örtüde boşluk ve yüz konumunun kutuyla taşınması.
+- **Gerçek kareler** (`.integration-claude-tmp/eval/frames.cjs`, iki gerçek YouTube klibi, 180 kare, eklentinin gerçek motor yolu): net yüzlerde erkekler 0,85–1,00, kadın sunucu 0,02. Tam çözünürlüklü kırpımla küçük kadın işaret dili çevirmeni değerlendirilebilir hâle geldi ve kadın çıktı (0,14–0,39). 0,6–0,9 aralığındaki 63 yüzün elle incelemesinde kadınların en yüksek değeri 0,70 idi. Ayna görüntüsüyle ortalama denendi, belirgin fark yaratmadığı için alınmadı.
+- **Oynatma ölçümü** (`playclip.cjs`, 40–55 sn, 0,5 sn’de bir sayım, başsız Brave): haber klibi açık erkek görülen ölçüm 0/77 → 59/77, talk show 2/77 → 61/76; kadın ağırlıklı iki klipte (101’er ölçüm) açılan kişilerin hepsi erkek sunucuydu, hiçbir kadın açılmadı. Kare kaybı %0–1,4, analiz medyanı 141→149 ms ve 122→141 ms. Ekran görüntüleri elle incelendi. Canlı YouTube oynatıcısında ölçülmedi.
 
 ## 3.1.0 · kadın odaklı örtü, vokal hataları, ekran kartı ve izlerken hazırlama
 

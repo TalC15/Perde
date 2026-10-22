@@ -1,4 +1,8 @@
-PERDE 3.1.0 — BAŞLANGIÇ
+PERDE 3.1.1 — BAŞLANGIÇ
+
+3.1.1: Kadınlar modunda erkeklerin örtülü kalması düzeltildi. Erkekler artık birkaç
+analiz içinde açılır; öndeki erkeğin başı arkadaki kişinin örtüsüyle kapanmaz.
+Eklentiyi Yenile ve YouTube sekmesini yenile; ses servisinde değişiklik yok.
 
 Varsayılan: kadınlar ve cinsiyeti belirlenemeyen kişiler örtülür. Panel > Koruma > Kimler örtülsün
 bölümünden Herkes seçilebilir. Örtü görünümü: Yumuşak renk veya Düz koyu.

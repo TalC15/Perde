@@ -67,33 +67,38 @@ function inside(box,width,height,regions){
   return regions.some(r=>cx>=r[0]&&cx<=r[0]+r[2]&&cy>=r[1]&&cy<=r[1]+r[3]);
 }
 // Small or uncertain faces give no gender evidence; their person stays covered.
-function quality(face){
-  const size=Math.max(face.box[2],face.box[3]);
+// scale: source pixels per detection pixel (gender crops come from the full frame).
+function quality(face,scale=1){
+  const size=Math.max(face.box[2],face.box[3])*Math.min(scale,1.6);
   return clamp((size-22)/34,0,1)*clamp((face.score-.55)/.25,0,1);
 }
 // people: normalized [x,y,w,h]. faces: {box (normalized), score, male (0..1|null), weight}.
-// Returns boxes plus aligned evidence {male, weight} or null. A person box with
-// any female-looking face in its head region counts as female for that frame.
+// Returns boxes plus aligned evidence {male, weight} or null. Each face belongs
+// to at most one person: the one whose head position it fits best, so a man is
+// not judged by a neighbour's face. A face without a person gets its own box.
 function combine(people,faces){
-  const boxes=people.map(b=>[...b]),evidence=people.map(()=>null),used=new Set();
-  people.forEach((p,i)=>{
-    let best=null;
-    faces.forEach((f,j)=>{
-      const cx=f.box[0]+f.box[2]/2,cy=f.box[1]+f.box[3]/2;
-      const inside=cx>=p[0]-p[2]*.05&&cx<=p[0]+p[2]*1.05&&cy>=p[1]-p[3]*.08&&cy<=p[1]+p[3]*.6&&f.box[2]<=p[2]*1.2;
-      if(!inside)return;
-      used.add(j);
-      if(!(f.weight>0)||!Number.isFinite(f.male))return;
-      if(!best||f.male<best.male)best={male:f.male,weight:f.weight};
-    });
-    evidence[i]=best;
-  });
+  const boxes=people.map(b=>[...b]),evidence=people.map(()=>null),pairs=[];
+  people.forEach((p,i)=>faces.forEach((f,j)=>{
+    const cx=f.box[0]+f.box[2]/2,cy=f.box[1]+f.box[3]/2;
+    const inside=cx>=p[0]-p[2]*.05&&cx<=p[0]+p[2]*1.05&&cy>=p[1]-p[3]*.08&&cy<=p[1]+p[3]*.6&&f.box[2]<=p[2]*1.2;
+    if(!inside)return;
+    // Heads sit at the top centre of a person box.
+    const cost=Math.abs(cx-(p[0]+p[2]/2))/p[2]+Math.abs(cy-(p[1]+f.box[3]*.75))/p[3];
+    pairs.push({i,j,cost});
+  }));
+  const person=new Set(),face=new Set();
+  for(const {i,j} of pairs.sort((a,b)=>a.cost-b.cost)){
+    if(person.has(i)||face.has(j))continue;
+    person.add(i);face.add(j);
+    const f=faces[j];
+    evidence[i]=f.weight>0&&Number.isFinite(f.male)?{male:f.male,weight:f.weight,face:f.box}:null;
+  }
   faces.forEach((f,j)=>{
-    if(used.has(j))return;
+    if(face.has(j))return;
     // A face without a detected body: cover the likely head-and-torso area.
     const [x,y,w,h]=f.box;
     boxes.push([x-w*.35,y-h*.25,w*1.7,h*3.2]);
-    evidence.push(f.weight>0&&Number.isFinite(f.male)?{male:f.male,weight:f.weight}:null);
+    evidence.push(f.weight>0&&Number.isFinite(f.male)?{male:f.male,weight:f.weight,face:f.box}:null);
   });
   return {boxes,evidence};
 }

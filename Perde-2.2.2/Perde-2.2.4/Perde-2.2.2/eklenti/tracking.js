@@ -16,18 +16,18 @@
     const px=Math.max(.012,b[2]*padding),py=Math.max(.015,b[3]*padding);
     return clip([b[0]-px,b[1]-py,b[2]+px*2,b[3]+py*2]);
   }
-  // Per-track gender vote. A person is left visible only after repeated,
+  // Per-track gender vote. A person is left visible only after two or more
   // confident "male" observations; one clear female observation covers again.
   const WINDOW=6;
-  function vote(state,evidence,threshold=.85) {
-    const previous=state||{obs:[],male:false,mean:null};
+  function vote(state,evidence,threshold=.8,now=0) {
+    const previous=state||{obs:[],male:false,mean:null,at:0};
     if(!evidence||!(evidence.weight>0)||!Number.isFinite(evidence.male))return previous;
     const obs=[...previous.obs,{p:clamp(evidence.male,0,1),w:clamp(evidence.weight,0,1)}].slice(-WINDOW);
     const weight=obs.reduce((s,o)=>s+o.w,0),mean=obs.reduce((s,o)=>s+o.p*o.w,0)/(weight||1),last=obs.at(-1);
     let male=previous.male;
-    if(male)male=!(mean<threshold-.1||last.p<.35&&last.w>=.4);
-    else male=obs.length>=2&&weight>=1&&mean>=threshold&&Math.min(...obs.map(o=>o.p))>=threshold-.2;
-    return {obs,male,mean};
+    if(male)male=!(mean<threshold-.15||last.p<.35&&last.w>=.4);
+    else male=obs.length>=2&&weight>=1&&mean>=threshold&&Math.min(...obs.map(o=>o.p))>=threshold-.25;
+    return {obs,male,mean,at:now};
   }
   // Displayed masks never trail the person: edges grow at once and shrink smoothly.
   function settle(shown,target,dt=16) {
@@ -38,12 +38,24 @@
     const nl=l<L?l:L+(l-L)*k,nt=t<T?t:T+(t-T)*k,nr=r>R?r:R+(r-R)*k,nb=b>B?b:B+(b-B)*k;
     return [nl,nt,nr-nl,nb-nt];
   }
+  // Face position as a fraction of its person box, so it moves with the box.
+  function relative(face,box) {
+    if(!Array.isArray(face)||!face.every(Number.isFinite)||!(box[2]>0&&box[3]>0))return null;
+    return [(face[0]-box[0])/box[2],(face[1]-box[1])/box[3],face[2]/box[2],face[3]/box[3]];
+  }
+  // The head area of a shown person, from its box and relative face: a covered
+  // box behind that person must not hide the head in front of it.
+  function head(box,face) {
+    if(!face)return null;
+    const w=face[2]*box[2],h=face[3]*box[3],x=box[0]+face[0]*box[2],y=box[1]+face[1]*box[3];
+    return [x-w*.25,y-h*.4,w*1.5,h*1.7];
+  }
   class Tracker {
     constructor(){this.tracks=[];this.nextId=1;}
     reset(){this.tracks=[];}
     // After a scene cut nobody keeps an earlier "male" decision.
     resetGender(){for(const t of this.tracks)t.gender=null;}
-    update(boxes,now,evidence=[],threshold=.85) {
+    update(boxes,now,evidence=[],threshold=.8) {
       if(!Array.isArray(boxes))throw Error('Geçersiz algılama sonucu');
       const old=this.tracks.filter(t=>now-t.seen<8000),available=new Set(old);
       const next=[];
@@ -61,10 +73,12 @@
           const dt=Math.max(.04,(now-match.seen)/1000);
           const velocity=box.map((v,i)=>clamp((v-match.box[i])/dt,-1.2,1.2));
           // An uncertain match may be a different person: its decision restarts.
+          // Boxes arrive already moved to the current frame, so a clear overlap
+          // within a few analysis intervals is the same person (cuts reset anyway).
           const area=box[2]*box[3]/(match.box[2]*match.box[3]||1);
-          const same=best>1&&now-match.seen<=400&&area>.55&&area<1.8;
-          next.push({id:match.id,box,velocity,seen:now,gender:vote(same?match.gender:null,evidence[index],threshold)});
-        }else next.push({id:this.nextId++,box,velocity:[0,0,0,0],seen:now,gender:vote(null,evidence[index],threshold)});
+          const same=best>1.3&&now-match.seen<=2500&&area>.55&&area<1.8;
+          next.push({id:match.id,box,velocity,seen:now,gender:vote(same?match.gender:null,evidence[index],threshold,now),face:relative(evidence[index]?.face,box)||(same?match.face:null)});
+        }else next.push({id:this.nextId++,box,velocity:[0,0,0,0],seen:now,gender:vote(null,evidence[index],threshold,now),face:relative(evidence[index]?.face,box)});
       }
       for(const t of available)if(now-t.seen<750)next.push(t);
       this.tracks=next;return this.sample(now);
@@ -77,7 +91,7 @@
         const x=Math.min(t.box[0],move[0]),y=Math.min(t.box[1],move[1]);
         const r=Math.max(t.box[0]+t.box[2],move[0]+move[2]);
         const b=Math.max(t.box[1]+t.box[3],move[1]+move[3]);
-        return {id:t.id,box:expanded([x,y,r-x,b-y],padding),male:t.gender?.male===true,score:t.gender?.mean??null};
+        return {id:t.id,box:expanded([x,y,r-x,b-y],padding),raw:move,face:t.face||null,male:t.gender?.male===true,score:t.gender?.mean??null};
       });
     }
   }
@@ -99,6 +113,6 @@
     };
     return {left:rect.left+offset(parts[0],rect.width-width),top:rect.top+offset(parts[1]||'50%',rect.height-height),width,height};
   }
-  root.PerdeTracking={Tracker,clip,expanded,overlap,contentRect,vote,settle};
+  root.PerdeTracking={Tracker,clip,expanded,overlap,contentRect,vote,settle,relative,head};
   if(typeof module!=='undefined')module.exports=root.PerdeTracking;
 })(globalThis);
