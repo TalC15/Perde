@@ -1,4 +1,20 @@
-# Perde doğrulama notları — 22 Ekim 2026 (3.1.2)
+# Perde doğrulama notları — 22 Ekim 2026 (3.1.4)
+
+## 3.1.4 · “Yüzü görünmeyenler” ayarı
+
+- **85/85 JavaScript testi geçti** (varsayılanın “örtülsün” olması ve geçersiz değerlerin varsayılana dönmesi eklendi).
+- **Gerçek panel** (başsız Brave): seçenek varsayılan “Örtülsün” ile görünüyor, “Açık kalsın” kaydediliyor, “Herkes” seçilince gizleniyor.
+- **Oynatma** (40 sn, kare başına ortalama örtülü / açık kişi; örtülsün → açık kalsın): haber örtülü 1,83 → 1,04, açık 0,75 → 1,68 kişi (15 sn); kişi kutularının %44’ünde yüz kanıtı yok; kadın ağırlıklı program kişilerin %7’si etkilenir (yüz kanıtı yok); İstiklal Caddesi kişilerin %93’ü etkilenir: sokakta arkası dönük kadınlar dahil neredeyse herkes açılır. Sokak videosunda “açık kalsın” arkası dönük kadınları da açar; bu ayarın bilinen bedelidir.
+- Ölçüm düzeneğindeki bir yarış düzeltildi: eklenti kurulumdan hemen sonra ayarları bir kez varsayılana göre yeniden yazıyordu; test artık ayarı yazdıktan sonra doğruluyor.
+- Sınır: Ölçümün ortasında C: sürücüsü doldu (234 MB boş kaldı) ve test tarayıcısı videoyu oynatamaz hâle geldi; kadın programı ve sokak videosu için “açık kalsın” oynatma ölçümü yapılamadı. Etkilenen kişi oranları aynı motorun kare analizinden hesaplandı.
+
+## 3.1.3 · kişi hafızası ve arkadan saç denemesi
+
+- **85/85 JavaScript testi geçti.** Yeni: hafıza tek net bakışla kimlik kararı vermez, kararsız bakışlar kimlik oluşturmaz, bilinen erkek yandan bakışta tanınır, farklı yüz eşleşmez, bir kez kadın görülen kişi kadın kalır, tek kadın bakışı “bilinen erkek” kararını kalıcı bitirir.
+- **Neden erkekler örtülü kalıyor:** Gerçek kliplerdeki kişi kutularının %44 (haber) ve %33’ünde (talk show) kullanılabilir yüz yok; model kararsızı yalnızca %5–10.
+- **Arkadan saç kuralı** (İstiklal Caddesi videosu, 128 arkası dönük kişi, elle etiket: 49 kadın, 68 erkek, 11 belirsiz): başörtüsüz kadınların %38’i arkadan kısa/toplu saçlı. MoveNet + saç bölütlemeyle ölçüm: erkeklerin 33/68’i, kadınların 9/49’u “kısa” çıktı (2’si başörtülü, 5’i uzun saçlı); hiçbir eşik ayırmadı; kişi başına ~66 ms. Eklenmedi.
+- **Hafıza eşiği:** 374 yüz, 10.640 erkek–kadın çifti (en yüksek 0,64), aynı karede farklı kişiler (en yüksek 0,72), aynı kişi ardışık kare (ortanca 0,91). Eşik 0,80: bu veride hiçbir yanlış eşleşme yok, aynı kişinin %84’ü tanınıyor.
+- **Oynatma** (60 sn, 3.1.2 ile sırayla): açık erkek görülen ölçümler 92→91 (talk show), 81→84 (haber); kadın ağırlıklı klipte 102 ölçümün hiçbirinde kimse açılmadı. Kare kaybı iki sürümde aynı düzeyde (bilgisayarda başka bir tarayıcı açıktı; talk show %6–7, haber %2).
 
 ## 3.1.2 · saç uzunluğu ve tek bakış kararı
 

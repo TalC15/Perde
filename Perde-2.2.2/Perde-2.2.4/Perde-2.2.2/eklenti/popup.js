@@ -1,9 +1,9 @@
 'use strict';
 const $=id=>document.getElementById(id);
 let settings=PerdeSettings.normalize(),activeTab=null,tabStatus=null;
-const fields=['enabled','profile','target','maskStyle','pauseOnError','muteAds','blockGambling','vocalEnabled','maxMinutes'];
+const fields=['enabled','profile','target','maskStyle','faceless','pauseOnError','muteAds','blockGambling','vocalEnabled','maxMinutes'];
 // Radio groups are addressed by name; other fields by id.
-const radioGroups=new Set(['target','maskStyle']);
+const radioGroups=new Set(['target','maskStyle','faceless']);
 const inputs=key=>radioGroups.has(key)?[...document.querySelectorAll(`input[name="${key}"]`)]:[$(key)];
 function fieldValue(key){const [first]=inputs(key);if(first.type==='radio')return inputs(key).find(x=>x.checked)?.value;return first.type==='checkbox'?first.checked:first.value;}
 function setField(key,value){for(const input of inputs(key)){if(input.type==='radio')input.checked=input.value===value;else if(input.type==='checkbox')input.checked=value;else input.value=String(value);input.disabled=false;}}
@@ -103,7 +103,7 @@ async function refresh(){
     tabStatus=await chrome.tabs.sendMessage(activeTab.id,{type:'status'},{frameId:0});
     $('status').textContent=tabStatus.error?'Analiz için yardım gerekiyor':tabStatus.enabled?'Görüntü koruması açık':'Görüntü koruması kapalı';
     $('protection-state').setAttribute('data-state',tabStatus.error?'error':tabStatus.enabled?'active':'inactive');
-    $('detail').textContent=tabStatus.error||(tabStatus.enabled?(tabStatus.target==='all'?'Algılanan bütün kişiler örtülüyor.':tabStatus.frames&&!tabStatus.genderReady?'Cinsiyet modeli hazırlanıyor; bu sırada algılanan herkes örtülüyor.':'Kadınlar ve belirlenemeyen kişiler örtülüyor; erkekler açık kalır.'):'Kişileri örtmek için aşağıdaki anahtarı açabilirsin.');
+    $('detail').textContent=tabStatus.error||(tabStatus.enabled?(tabStatus.target==='all'?'Algılanan bütün kişiler örtülüyor.':tabStatus.frames&&!tabStatus.genderReady?'Cinsiyet modeli hazırlanıyor; bu sırada algılanan herkes örtülüyor.':(tabStatus.faceless==='show'?'Kadınlar ve kararsız kalınan kişiler örtülüyor; yüzü görünmeyenler ve erkekler açık.':'Kadınlar ve belirlenemeyen kişiler örtülüyor; erkekler açık kalır.')):'Kişileri örtmek için aşağıdaki anahtarı açabilirsin.');
     $('counts').textContent=`${tabStatus.frames} video karesi · ${tabStatus.images} görsel · son karede ${tabStatus.people} kişi (${tabStatus.covered??0} örtülü) · ${tabStatus.ms} ms`;
   }catch{$('status').textContent='Bu sayfada koruma etkin değil';$('protection-state').setAttribute('data-state','inactive');$('detail').textContent='YouTube’daysan sayfayı yenile. Başka bir site için aşağıdan izin verebilirsin.';$('counts').textContent='';tabStatus=null;}
 }
@@ -114,6 +114,9 @@ function save(){
   saveQueue=saveQueue.then(()=>chrome.storage.local.set({settings:value})).then(()=>{$('save').textContent='Ayarlar kaydedildi';return refresh();}).catch(error=>{$('save').textContent=error.message;});
 }
 for(const id of fields)for(const input of inputs(id))input.addEventListener('change',save);
+// The faceless choice only matters when women are the target.
+const facelessField=()=>{$('faceless-field').hidden=fieldValue('target')==='all';};
+for(const input of inputs('target'))input.addEventListener('change',facelessField);
 $('retry').onclick=async()=>{try{await chrome.tabs.sendMessage(activeTab.id,{type:'retry'});$('save').textContent='Analiz yeniden başlatıldı';}catch{$('save').textContent='Önce korumanın açık olduğu sayfayı yenile.';}};
 $('check').onclick=async()=>{$('save').textContent='Yerel modeller kontrol ediliyor…';try{const r=await rpc({type:'model-check'});$('save').textContent=r.warning||`İnsan${r.faceReady?' + yüz':''}${r.genderReady?' + cinsiyet':''} modelleri hazır (${r.backend})`;}catch(error){$('save').textContent=error.message;}};
 $('test').onclick=()=>chrome.tabs.create({url:chrome.runtime.getURL('test.html')});
@@ -178,7 +181,7 @@ $('clear-cache').onclick=async()=>{
   finally{serviceControls();}
 };
 chrome.storage.local.get({settings:PerdeSettings.defaults}).then(r=>{
-  settings=PerdeSettings.normalize(r.settings);for(const id of fields)setField(id,settings[id]);refresh();siteList();
+  settings=PerdeSettings.normalize(r.settings);for(const id of fields)setField(id,settings[id]);facelessField();refresh();siteList();
 }).catch(()=>{$('save').textContent='Ayarlar yüklenemedi. Eklenti panelini kapatıp yeniden aç.';});refreshLibrary();refreshService();setInterval(()=>{if(!document.hidden)refresh();},2000);setInterval(()=>{if(!document.hidden)refreshLibrary();},10000);
 
 setInterval(()=>{if(!document.hidden)refreshService();},5000);

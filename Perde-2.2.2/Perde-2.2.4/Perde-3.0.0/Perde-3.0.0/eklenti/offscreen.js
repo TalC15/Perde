@@ -2,7 +2,7 @@
 let loading=null,extras=null,personModel=null,faceModel=null,genderModel=null;
 let queue=Promise.resolve();
 let engineStatus={ready:false,backend:null,error:null,faceReady:false,genderReady:false};
-const GENDER_BATCH=4,GENDER_SIZE=224,GENDER_OUTPUT='gender_pred/Sigmoid:0';
+const GENDER_BATCH=4,GENDER_SIZE=224,GENDER_OUTPUT='gender_pred/Sigmoid:0',DESCRIPTOR_OUTPUT='global_pooling/Mean',DESCRIPTOR_SIZE=1024;
 async function warmUp(face,gender){
   // Compile shaders before these models touch a video frame: a 16:9 frame with
   // one face pass and with the small-people tiles, and every gender batch size.
@@ -60,6 +60,13 @@ async function findFaces(batch,width,height,people,model=faceModel){
   list.forEach((tile,i)=>found.push(...PerdeFaces.decode(data.subarray(i*size,(i+1)*size),tile,.6)));
   return PerdeFaces.suppress(found);
 }
+// One memory per video; only the most recent few are kept.
+const memories=new Map();
+function memoryFor(stream){
+  let memory=memories.get(stream);
+  if(!memory){memory=new PerdeFaces.Memory();memories.set(stream,memory);if(memories.size>4)memories.delete(memories.keys().next().value);}
+  return memory;
+}
 async function classify(batch,width,height,faces,limit,skip,scale=1){
   // Probability that each face is male; null when the face is too small/uncertain
   // or belongs to a person whose decision is already settled (cost grows per face).
@@ -71,9 +78,10 @@ async function classify(batch,width,height,faces,limit,skip,scale=1){
   for(let i=0;i<order.length;i+=GENDER_BATCH){
     const group=order.slice(i,i+GENDER_BATCH);
     const boxes=group.map(item=>PerdeFaces.cropBox(faces[item.index].box,width,height));
-    const output=tf.tidy(()=>genderModel.execute(tf.image.cropAndResize(batch,boxes,boxes.map(()=>0),[GENDER_SIZE,GENDER_SIZE]),GENDER_OUTPUT));
-    const values=await output.data();output.dispose();
-    group.forEach((item,k)=>{const p=values[k];if(Number.isFinite(p))result[item.index]={male:Math.min(1,Math.max(0,p)),weight:item.weight};});
+    // The same pass yields an identity descriptor used to remember people.
+    const [output,features]=tf.tidy(()=>genderModel.execute(tf.image.cropAndResize(batch,boxes,boxes.map(()=>0),[GENDER_SIZE,GENDER_SIZE]),[GENDER_OUTPUT,DESCRIPTOR_OUTPUT]));
+    const values=await output.data(),vectors=await features.data();output.dispose();features.dispose();
+    group.forEach((item,k)=>{const p=values[k];if(Number.isFinite(p))result[item.index]={male:Math.min(1,Math.max(0,p)),weight:item.weight,descriptor:PerdeFaces.normalize(vectors.subarray(k*DESCRIPTOR_SIZE,(k+1)*DESCRIPTOR_SIZE))};});
   }
   return result;
 }
@@ -105,6 +113,17 @@ async function detect(message){
       if(scale>1.05){full=tf.tidy(()=>tf.expandDims(tf.cast(tf.browser.fromPixels(image),'float32')));genders=await classify(full,W,H,faces,limit,skip,scale);}
       else genders=await classify(floats,W,H,faces,limit,skip);
     }
+    // A man seen clearly earlier in this video is recognised at once, e.g. after
+    // a scene cut or when he turns his head. A face that looks female now is never overridden.
+    if(message.genders!==false&&typeof message.stream==='string'){
+      const memory=memoryFor(message.stream.slice(0,300));
+      genders.forEach(g=>{
+        if(!g?.descriptor||g.weight<.5)return;
+        const known=memory.observe(g.descriptor,g.male,g.weight,Date.now());
+        if(known.knownFemale)g.male=Math.min(g.male,.1);
+        else if(known.knownMale&&g.male>=.4){g.male=Math.max(g.male,.97);g.weight=1;g.known=true;}
+      });
+    }
     // Undecided faces that lean male: clearly short hair counts as a male look,
     // long hair keeps them covered. Each look still has to agree with the next.
     if(message.genders!==false&&globalThis.PerdeHair){
@@ -127,7 +146,7 @@ async function detect(message){
     const combined=PerdeFaces.combine(people,faces.map((face,i)=>({box:[face.box[0]/W,face.box[1]/H,face.box[2]/W,face.box[3]/H],score:face.score,male:genders[i]?.male??null,weight:genders[i]?.weight||0})));
     if(!combined.boxes.every(b=>b.every(Number.isFinite)))throw Error('Model geçersiz koordinat üretti');
     // debug: per-face results for the test page and offline evaluation.
-    const faceDetails=message.debug===true?faces.map((face,i)=>({box:[face.box[0]/W,face.box[1]/H,face.box[2]/W,face.box[3]/H],score:face.score,male:genders[i]?.male??null,weight:genders[i]?.weight||0,hair:genders[i]?.hair||null})):undefined;
+    const faceDetails=message.debug===true||message.debug==='descriptors'?faces.map((face,i)=>({box:[face.box[0]/W,face.box[1]/H,face.box[2]/W,face.box[3]/H],score:face.score,male:genders[i]?.male??null,weight:genders[i]?.weight||0,hair:genders[i]?.hair||null,known:genders[i]?.known===true,descriptor:message.debug==='descriptors'&&genders[i]?.descriptor?Array.from(genders[i].descriptor,v=>+v.toFixed(4)):undefined})):undefined;
     return {ok:true,boxes:combined.boxes,evidence:combined.evidence,faces:faces.length,faceDetails,genderReady:!!genderModel,timing,ms:Math.round(performance.now()-begin),backend:tf.getBackend(),warning:engineStatus.warning};
   }finally{pixels.dispose();floats?.dispose();full?.dispose();}
 }

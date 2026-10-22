@@ -180,7 +180,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     if(message?.type==='vocal-lookup')return vocal(message,sender);
     if(message?.type?.startsWith('vocal-'))return serializedVocal(()=>vocal(message,sender));
     switch(message?.type){
-      case 'detect':return engine({type:'engine-detect',image:message.image,confidence:message.confidence,detail:message.detail,frame:message.frame,genderLimit:message.genderLimit,genders:message.genders!==false,skip:message.skip,threshold:message.threshold,debug:message.debug===true});
+      case 'detect':return engine({type:'engine-detect',image:message.image,confidence:message.confidence,detail:message.detail,frame:message.frame,genderLimit:message.genderLimit,genders:message.genders!==false,skip:message.skip,threshold:message.threshold,stream:message.stream,debug:message.debug===true||message.debug==='descriptors'?message.debug:false});
       case 'image-read':return {ok:true,image:await readImage(message.url)};
       case 'model-check':return engine({type:'engine-status'});
       case 'diagnostics':return {ok:true,version:chrome.runtime.getManifest().version};

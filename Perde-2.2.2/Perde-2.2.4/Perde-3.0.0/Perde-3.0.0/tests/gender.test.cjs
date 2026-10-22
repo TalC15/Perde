@@ -11,6 +11,10 @@ test('Women are the default target; unknown values fall back safely',()=>{
   assert.equal(settings.normalize({target:'all',maskStyle:'solid'}).target,'all');
   assert.equal(settings.normalize({target:'men',maskStyle:'none'}).target,'women');
   assert.equal(settings.normalize({maskStyle:'none'}).maskStyle,'blur');
+  // People whose face was never seen stay covered unless the user chooses otherwise.
+  assert.equal(s.faceless,'cover');
+  assert.equal(settings.normalize({faceless:'show'}).faceless,'show');
+  assert.equal(settings.normalize({faceless:true}).faceless,'cover');
   // A stricter level needs more certainty before anyone is left uncovered.
   assert.ok(settings.profiles.high.maleThreshold>settings.profiles.balanced.maleThreshold);
   assert.ok(settings.profiles.balanced.maleThreshold>settings.profiles.loose.maleThreshold);
@@ -127,3 +131,23 @@ test('Hair length is read only when hair is visible on top of the head',()=>{
   assert.equal(faces.hairLength(mask(35,90),S,face),'none','hair only below the forehead is not a head of hair');
   assert.equal(faces.hairLength(mask(10,20,45,55),S,face),'none','a few pixels are not enough');
 });
+test('A man seen clearly earlier is recognised; a woman never becomes known male',()=>{
+  const unit=(...v)=>faces.normalize(Float32Array.from({length:8},(_,i)=>v[i]||0));
+  const man=unit(1,.2),manTurned=unit(1,.3,.1),woman=unit(0,1),similarWoman=unit(.55,.84);
+  const memory=new faces.Memory();
+  assert.deepEqual(memory.observe(man,.95,1),{knownMale:false,knownFemale:false},'one look makes no identity decision');
+  memory.observe(man,.93,1);
+  assert.ok(faces.similarity(man,manTurned)>=faces.SAME_PERSON);
+  assert.equal(memory.observe(manTurned,.6,.8).knownMale,true,'recognised from an uncertain side view');
+  assert.ok(faces.similarity(man,similarWoman)<faces.SAME_PERSON);
+  assert.equal(memory.observe(similarWoman,.6,1).knownMale,false,'a different face is not matched');
+  memory.observe(woman,.05,1);
+  assert.equal(memory.observe(woman,.5,1).knownFemale,true,'a woman seen once stays a woman');
+  // Uncertain looks never create a person.
+  const fresh=new faces.Memory();fresh.observe(man,.7,1);fresh.observe(man,.7,1);
+  assert.equal(fresh.people.length,0);
+  // One female look ends a "known male" identity for good.
+  const mixed=new faces.Memory();mixed.observe(man,.95,1);mixed.observe(man,.95,1);mixed.observe(man,.1,1);
+  assert.deepEqual(mixed.observe(man,.9,1),{knownMale:false,knownFemale:true});
+});
+

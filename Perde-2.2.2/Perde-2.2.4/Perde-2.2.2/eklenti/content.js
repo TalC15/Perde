@@ -5,7 +5,7 @@
   let settings={...DEFAULTS},generation=0,siteDisabled=false;
   const records=new Map(),parents=new WeakMap();const diagnostics=[];
   const intersections=new IntersectionObserver(entries=>{for(const entry of entries){const record=records.get(entry.target);if(record){record.inView=entry.isIntersecting;if(!record.inView)record.layer.style.display='none';}}},{rootMargin:'160px'});
-  const status={version:'3.1.2',model:'hazırlanıyor',frames:0,images:0,people:0,covered:0,visible:0,ms:0,genderReady:false,error:null};
+  const status={version:'3.1.4',model:'hazırlanıyor',frames:0,images:0,people:0,covered:0,visible:0,ms:0,genderReady:false,error:null};
   let inferenceBusy=false,scheduled=false;
   const {Tracker,contentRect,expanded,settle}=PerdeTracking;
   // Blob masks are painted from a tiny copy of the region: no detail survives.
@@ -93,7 +93,9 @@
     if(style.visibility!=='visible'||style.display==='none'||Number(style.opacity)===0)return false;
     return !element.checkVisibility||element.checkVisibility({checkOpacity:true,checkVisibilityCSS:true});
   }
-  const covers=item=>settings.target==='all'||!item.male;
+  // A person without any face evidence ("faceless") may be left visible on
+  // request, but only once the gender model runs: before that nobody has evidence.
+  const covers=item=>settings.target==='all'||!item.male&&!(settings.faceless==='show'&&status.genderReady&&item.score===null);
   function paint(record,mask,box,now){
     // Soft colour field taken from the covered region itself; repainted ~4 times/s.
     if(settings.maskStyle!=='blur'){if(mask.painted){mask.getContext('2d').clearRect(0,0,MASK_W,MASK_H);mask.painted=false;}return;}
@@ -254,7 +256,7 @@
       // Settled people need no new gender look: women stay covered, and a fresh
       // male decision is checked again after a few seconds.
       const skip=settings.target==='women'?record.tracker.tracks.filter(t=>t.gender?.obs.length>=2&&(t.gender.mean<.3||t.gender.male&&now-t.gender.at<2500)).map(t=>t.box):[];
-      const result=await rpc({type:'detect',image:data,confidence:settings.confidence,detail:settings.detail,frame:settings.frame,genderLimit:settings.genderLimit,genders:settings.target==='women',threshold:settings.maleThreshold,skip});
+      const result=await rpc({type:'detect',image:data,confidence:settings.confidence,detail:settings.detail,frame:settings.frame,genderLimit:settings.genderLimit,genders:settings.target==='women',threshold:settings.maleThreshold,stream:type==='video'?source:undefined,skip});
       if(epoch!==record.epoch||version!==generation||!element.isConnected||source!==(type==='video'?element.currentSrc:(element.currentSrc||element.src)))return;
       const timestamp=performance.now();
       const evidence=Array.isArray(result.evidence)?result.evidence:[];
@@ -313,7 +315,7 @@
   }
   chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     if(message.type==='site-disable'){siteDisabled=true;apply({...settings,enabled:false});respond({ok:true});}
-    if(message.type==='status')respond({...status,ok:true,enabled:settings.enabled,target:settings.target,diagnostics,videoCount:[...records.values()].filter(r=>r.type==='video').length});
+    if(message.type==='status')respond({...status,ok:true,enabled:settings.enabled,target:settings.target,faceless:settings.faceless,diagnostics,videoCount:[...records.values()].filter(r=>r.type==='video').length});
     if(message.type==='retry'){for(const r of records.values()){r.retryAt=0;r.error=null;r.processed=false;r.time=-1;r.last=0;}tick();respond({ok:true});}
   });
   chrome.storage.local.get({settings:DEFAULTS}).then(({settings})=>{

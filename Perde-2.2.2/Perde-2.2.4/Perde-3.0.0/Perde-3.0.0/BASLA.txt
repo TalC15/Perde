@@ -1,4 +1,12 @@
-PERDE 3.1.2 — BAŞLANGIÇ
+PERDE 3.1.4 — BAŞLANGIÇ
+
+3.1.4: Panel > Koruma > Yüzü görünmeyenler: Örtülsün (varsayılan) / Açık kalsın.
+"Açık kalsın" erkeklerin örtülmesini azaltır ama arkası dönük, uzaktaki ve kalabalıktaki
+kadınlar da görünür. Eklentiyi Yenile, YouTube sekmesini yenile.
+
+3.1.3: Videoda net görülen erkek hatırlanır; sahne dönünce tek bakışta açılır. Arkası dönük
+kişilerde saç uzunluğu kadınla erkeği ayıramadığı için (testte kadınların %18'ini açtı) bu kişiler
+örtülü kalır. Eklentiyi Yenile, YouTube sekmesini yenile.
 
 3.1.2: Cinsiyeti belirlenemeyen ama erkeğe yakın kişide saç uzunluğuna bakılır: kısa saç
 erkek yönünde sayılır, uzun saç örtülü bırakır. Başörtüsü/şapka ve arkası dönük kişiler

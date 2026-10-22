@@ -1,6 +1,24 @@
-# Perde 3.1.2 — çalışma notu
+# Perde 3.1.4 — çalışma notu
 
 HAKKINDA.txt değiştirilmedi. İnsan, yüz ve cinsiyet algılama yereldir. Varsayılan olarak kadınlar ve cinsiyeti belirlenemeyen kişiler örtülür; panelden **Herkes** seçilirse algılanan bütün insanlar örtülür.
+
+## 3.1.4 · “Yüzü görünmeyenler” ayarı
+
+- **Koruma → Yüzü görünmeyenler:** **Örtülsün** (varsayılan, önerilen) veya **Açık kalsın**. Yüzü hiç görülmemiş kişiler (arkası dönük, uzaktaki, kalabalıkta gizli veya yüzü çok küçük) “Açık kalsın” seçilince örtülmez. Yüzü görülüp kadın ya da kararsız bulunan kişiler her iki seçenekte de örtülü kalır. Ayar yalnızca **Kadınlar** modunda görünür.
+- **Bedeli:** “Açık kalsın” erkeklerin örtülmesini azaltır ama arkası dönük, uzaktaki ve kalabalıktaki **kadınlar da görünür**. Bu, sahnede yüzü görünmeyen kişinin cinsiyetinin bilinemeyişinin doğrudan sonucudur.
+- **Güvenlik:** Cinsiyet modeli hazırlanırken kimsenin yüz kanıtı olmadığından bu sürede ayar uygulanmaz; herkes örtülü kalır.
+- **Ölçüm** (40 sn oynatma, kare başına ortalama örtülü / açık kişi): haber örtülü 1,83 → 1,04, açık 0,75 → 1,68 kişi (15 sn); kişi kutularının %44’ünde yüz kanıtı yok · kadın ağırlıklı program kişilerin %7’si etkilenir (yüz kanıtı yok) · İstiklal Caddesi kişilerin %93’ü etkilenir: sokakta arkası dönük kadınlar dahil neredeyse herkes açılır.
+
+**Güncelleme:** Eklentiyi **Yenile** (3.1.4 görünmeli) ve YouTube sekmesini yenile.
+
+## 3.1.3 · kişi hafızası; arkadan saç kuralı neden yok
+
+- **Kişi hafızası:** Cinsiyet modeli her yüz için ek maliyetsiz bir kimlik izi üretir. Bir erkek videoda en az iki kez net görüldüyse (ve hiç kadın görülmediyse) hatırlanır; sahne geri döndüğünde veya başını çevirdiğinde tek bakışta açılır. O an kadın görünen yüz (0,4 altı) asla ezilmez; bir kez net kadın görülen kişi hep kadın kalır. Hafıza yalnızca o video için, eklentinin arka plan belgesinde tutulur ve hiçbir yere kaydedilmez.
+- **Eşik ölçümle seçildi:** Gerçek kliplerdeki 374 yüzde aynı kişinin ardışık karelerdeki benzerliği ortanca 0,91; 10.640 erkek–kadın çiftinin en yüksek benzerliği 0,64; aynı karedeki farklı kişilerin en yükseği 0,72. Eşik 0,80. Haber ve talk show’da hafıza 80–87 kez bilinen erkeği tanıdı; kadın ağırlıklı klipte hiç tetiklenmedi ve hiçbir kadın açılmadı.
+- **Arkadan saç uzunluğu bilerek eklenmedi.** İstiklal Caddesi’nden 128 arkası dönük kişi elle etiketlendi ve vücut duruşu (MoveNet) + saç modeliyle ölçüldü. Etiketlerde başörtüsüz kadınların %38’inin saçı arkadan kısa ya da topuz/toplu görünüyordu. Gerçek ölçüm erkeklerin yalnızca %49’unu açarken kadınların %18’ini de açtı; bunlara uzun saçlı ve başörtülü kadınlar dahildi. Hiçbir eşik erkekleri kadınlardan ayıramadı (en katı ayarda 7 erkeğe karşı 4 kadın). Bu, “kadınlar örtülü kalsın” hedefiyle bağdaşmadığı için arkası dönük kişiler örtülü kalır.
+- **Kalan sınır:** Gerçek kliplerde ekrandaki kişilerin %33–44’ünün o karede yüzü görünmüyor (arkası dönük, uzak, kalabalıkta gizli). Bu kişiler için cinsiyeti güvenilir bilmenin yolu yok; örtülü kalırlar.
+
+**Güncelleme:** Eklentiyi **Yenile** (3.1.3 görünmeli) ve YouTube sekmesini yenile. Ses servisinde değişiklik yok.
 
 ## 3.1.2 · kararsız kalınca saç uzunluğu, daha hızlı karar
 

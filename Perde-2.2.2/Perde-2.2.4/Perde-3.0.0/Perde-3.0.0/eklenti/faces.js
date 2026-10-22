@@ -118,6 +118,39 @@ function hairLength(mask,size,face){
   if(below>=.5&&share>=.05)return 'long';
   return 'none';
 }
-root.PerdeFaces={INPUT,ROW,ANCHORS,anchors,tiles,decode,iou,suppress,cropBox,inside,quality,combine,hairLength};
+function normalize(vector){
+  let sum=0;for(const v of vector)sum+=v*v;
+  const scale=1/Math.sqrt(sum||1),out=new Float32Array(vector.length);
+  for(let i=0;i<vector.length;i++)out[i]=vector[i]*scale;
+  return out;
+}
+function similarity(a,b){let sum=0;for(let i=0;i<a.length;i++)sum+=a[i]*b[i];return sum;}
+// People seen clearly earlier in the same video, by face descriptor. On real
+// clips the same face scored 0.91 (median) between frames, while no man-woman
+// pair exceeded 0.64 and no two different people 0.72; 0.80 leaves a margin.
+const SAME_PERSON=.8;
+class Memory{
+  constructor(limit=60){this.people=[];this.limit=limit;}
+  best(vector){
+    let found=null,score=0;
+    for(const person of this.people){const s=similarity(person.vector,vector);if(s>score){score=s;found=person;}}
+    return score>=SAME_PERSON?found:null;
+  }
+  // Records a clear look and returns what is known about this person.
+  observe(vector,male,weight,now=0){
+    const person=this.best(vector);
+    const sure=weight>=.6&&(male>=.85||male<=.2);
+    if(person){
+      if(sure){if(male>=.85)person.male++;else person.female++;}
+      const mixed=new Float32Array(vector.length);for(let i=0;i<vector.length;i++)mixed[i]=person.vector[i]*.8+vector[i]*.2;
+      person.vector=normalize(mixed);person.seen=now;
+    }else if(sure){
+      this.people.push({vector,male:male>=.85?1:0,female:male<=.2?1:0,seen:now});
+      if(this.people.length>this.limit){this.people.sort((a,b)=>b.seen-a.seen);this.people.length=this.limit;}
+    }
+    return person?{knownMale:person.male>=2&&person.female===0,knownFemale:person.female>0}:{knownMale:false,knownFemale:false};
+  }
+}
+root.PerdeFaces={INPUT,ROW,ANCHORS,anchors,tiles,decode,iou,suppress,cropBox,inside,quality,combine,hairLength,normalize,similarity,Memory,SAME_PERSON};
 if(typeof module!=='undefined')module.exports=root.PerdeFaces;
 })(globalThis);

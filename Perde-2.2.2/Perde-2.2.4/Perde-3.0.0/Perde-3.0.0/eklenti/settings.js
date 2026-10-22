@@ -9,14 +9,16 @@
     balanced:{confidence:.25,padding:.15,detail:'normal',frame:800,maleThreshold:.8,genderLimit:3,cutBlur:false,gpuShare:.15},
     high:{confidence:.15,padding:.25,detail:'high',frame:960,maleThreshold:.88,genderLimit:4,cutBlur:true,gpuShare:.25}
   };
-  const targets=['women','all'],maskStyles=['blur','solid'];
-  const defaults={enabled:true,profile:'balanced',target:'women',maskStyle:'blur',pauseOnError:true,muteAds:true,blockGambling:false,vocalEnabled:true,maxMinutes:40};
+  // faceless: people whose face was never seen (from behind, far away, hidden in
+  // a crowd) are covered by default; 'show' leaves them visible in women mode.
+  const targets=['women','all'],maskStyles=['blur','solid'],facelessModes=['cover','show'];
+  const defaults={enabled:true,profile:'balanced',target:'women',maskStyle:'blur',faceless:'cover',pauseOnError:true,muteAds:true,blockGambling:false,vocalEnabled:true,maxMinutes:40};
   function normalize(raw={}){
     if(!raw||typeof raw!=='object')raw={};
     const profile=Object.hasOwn(profiles,raw.profile)?raw.profile:raw.confidence===.4?'loose':raw.confidence===.15?'high':'balanced';
-    return {...defaults,profile,...profiles[profile],enabled:raw.enabled!==false,target:targets.includes(raw.target)?raw.target:defaults.target,maskStyle:maskStyles.includes(raw.maskStyle)?raw.maskStyle:defaults.maskStyle,pauseOnError:raw.pauseOnError!==false,muteAds:raw.muteAds!==false,blockGambling:raw.blockGambling===true,vocalEnabled:raw.vocalEnabled!==false,maxMinutes:[3,5,10,15,25,40].includes(Number(raw.maxMinutes))?Number(raw.maxMinutes):40};
+    return {...defaults,profile,...profiles[profile],enabled:raw.enabled!==false,target:targets.includes(raw.target)?raw.target:defaults.target,maskStyle:maskStyles.includes(raw.maskStyle)?raw.maskStyle:defaults.maskStyle,faceless:facelessModes.includes(raw.faceless)?raw.faceless:defaults.faceless,pauseOnError:raw.pauseOnError!==false,muteAds:raw.muteAds!==false,blockGambling:raw.blockGambling===true,vocalEnabled:raw.vocalEnabled!==false,maxMinutes:[3,5,10,15,25,40].includes(Number(raw.maxMinutes))?Number(raw.maxMinutes):40};
   }
   function videoId(url){try{const u=new URL(url);if(u.protocol!=='https:'||!/(^|\.)youtube(?:-nocookie)?\.com$/.test(u.hostname))return null;const id=u.searchParams.get('v')||u.pathname.match(/^\/(?:shorts|embed)\/([\w-]{11})/)?.[1];return /^[\w-]{11}$/.test(id||'')?id:null;}catch{return null;}}
-  root.PerdeSettings={defaults,profiles,targets,maskStyles,normalize,videoId};
+  root.PerdeSettings={defaults,profiles,targets,maskStyles,facelessModes,normalize,videoId};
   if(typeof module!=='undefined')module.exports=root.PerdeSettings;
 })(globalThis);
